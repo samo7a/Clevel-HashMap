@@ -3,13 +3,33 @@ public class Main {
     public static void main(String[] args) {
         ClevelHashTable context = new ClevelHashTable(); // create a new hashtable
         System.out.println(context.isResizing); // testing the value of resizing
-        for (int i = 0; i < context.size; i++) { // testing the initial values of the hash table
-            System.out.printf("Bottom Level Array: Index %d has a bucket of key = %d, value = %d%n", i,
-                    context.bottomLevel[i].key, context.bottomLevel[i].value);
-        }
-        for (int i = 0; i < context.size * 2; i++) {
-            System.out.printf("Top Level Array: Index %d has a bucket of key = %d, value = %d%n", i,
-                    context.topLevel[i].key, context.topLevel[i].value);
-        }
+
+        // inserting into the tree
+        context.bottomLevel[0] = Bucket.insertTree(0, 23, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 14, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 25, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 24, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 26, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 13, context.bottomLevel[0]);
+        context.bottomLevel[0] = Bucket.insertTree(0, 15, context.bottomLevel[0]);
+        Bucket.printTree(context.bottomLevel[0]); // printing the tree
+        System.out.println();  
+
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25);
+        Bucket.printTree(context.bottomLevel[0]);
+        System.out.println();
+
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25);
+        Bucket.printTree(context.bottomLevel[0]);
+        System.out.println();
+
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 23);
+        Bucket.printTree(context.bottomLevel[0]);
+        System.out.println();
+
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 13);
+        Bucket.printTree(context.bottomLevel[0]);
+        System.out.println();
+        
     }
 }
