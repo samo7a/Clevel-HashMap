@@ -17,4 +17,24 @@ public class ClevelHashTable {
             bottomLevel[i] = new Bucket();
         }
     }
+
+    public int insert(int value) {
+        // TODO
+    }
+
+    public int search(int value) {
+        // TODO
+    }
+
+    public int delete(int value) {
+        // TODO
+    }
+
+    public void resize() {
+        // TODO
+    }
+
+    public int update(int value) {
+        // TODO
+    }
 }
