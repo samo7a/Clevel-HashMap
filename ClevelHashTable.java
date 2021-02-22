@@ -3,7 +3,7 @@ public class ClevelHashTable {
     boolean isResizing;
     Bucket[] topLevel; // array of buckets
     Bucket[] bottomLevel;
-    int size;
+    int size; // size of the bottom level
 
     // constructor
     public ClevelHashTable() {
