@@ -24,7 +24,7 @@ public class ClevelHashTable {
 
     public void insert(int value, int key) {
         // TODO
-<<<<<<< HEAD
+
         // hash here
         hash (key);
         // get the key from hashing, assign 0 for now
@@ -46,7 +46,7 @@ public class ClevelHashTable {
             this.resize();
             this.insert(value, key);
         }
-=======
+
        // hash here
 
         // get the key from hashing, assign 0 for now
@@ -59,7 +59,7 @@ public class ClevelHashTable {
        // insert to top level
         topLevel[topKey] = Bucket.insertTree(topKey, value, topLevel[topKey]);
         return value;
->>>>>>> 2b6c0e7840155db04ce65f84f2f1722a3047ac9a
+
     }
 
     public int search(int value, int key) {
