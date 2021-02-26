@@ -12,27 +12,30 @@ public class Main {
         context.bottomLevel[0] = Bucket.insertTree(0, 26, context.bottomLevel[0]);
         context.bottomLevel[0] = Bucket.insertTree(0, 13, context.bottomLevel[0]);
         context.bottomLevel[0] = Bucket.insertTree(0, 15, context.bottomLevel[0]);
-        context.bottomLevel[0] = Bucket.insertTree(0, 15, context.bottomLevel[0]); // trying to insert a dublicate 
+        context.bottomLevel[0] = Bucket.insertTree(0, 15, context.bottomLevel[0]); // trying to insert a dublicate
         Bucket.printTree(context.bottomLevel[0]); // printing the tree
-        System.out.println();  
+        System.out.println();
 
-        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25);  // deleting a node that has two children
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25, 0); // deleting a node that has two
+                                                                                   // children
         Bucket.printTree(context.bottomLevel[0]);
         System.out.println();
 
-        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25);  // deleting a node that does not exist 
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 25, 0); // deleting a node that does not
+                                                                                   // exist
         Bucket.printTree(context.bottomLevel[0]);
         System.out.println();
 
-        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 24); // deleting a node that has only one child
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 24, 0); // deleting a node that has only one
+                                                                                   // child
         Bucket.printTree(context.bottomLevel[0]);
         System.out.println();
 
-        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 23); // deleting the root 
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 23, 0); // deleting the root
         Bucket.printTree(context.bottomLevel[0]);
         System.out.println();
 
-        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 13); // deleting a leaf node
+        context.bottomLevel[0] = Bucket.deleteTree(context.bottomLevel[0], 13, 0); // deleting a leaf node
         Bucket.printTree(context.bottomLevel[0]);
         System.out.println();
 

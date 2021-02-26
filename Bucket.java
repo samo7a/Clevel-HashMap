@@ -5,6 +5,7 @@ public class Bucket {
     Bucket left;
     Bucket right;
     final static int LIMIT = 8;
+
     // constructors
     public Bucket(int key, int value) {
         this.key = key;
@@ -33,34 +34,36 @@ public class Bucket {
         return root; // return the root at the end
     }
 
-    public static boolean searchTree(Bucket root, int value, int key) {
+    public static Bucket searchTree(Bucket root, int value, int key) {
         if (root != null) { // if the root exists
-            if (root.value == value && root.key == key) // if the root's value equals the searched item's value, return the root
-                return true;
+            if (root.value == value && root.key == key) // if the root's value equals the searched item's value, return
+                                                        // the root
+                return root;
             if (root.value > value) // if the root's value is larger than the searched item's value, search the left
                                     // node
-                return searchTree(root.left, value);
+                return searchTree(root.left, value, key);
             else
-                return searchTree(root.right, value); // if the root's value is smaller than the searched item's value,
-                                                      // search the right node
+                return searchTree(root.right, value, key); // if the root's value is smaller than the searched item's
+                                                           // value,
+            // search the right node
         } else // if the root does not exist, return null
-            return false;
+            return null;
     }
 
     // not complete, need more information to implement it.
     // public Bucket updateTree(int key, int value, Bucket root) {
-    //     Bucket isFound = searchTree(root, value);
-    //     if (isFound != null)
-    //         isFound.value = value;
-    //     else
-    //         root = insertTree(key, value, root);
-    //     return root;
+    // Bucket isFound = searchTree(root, value);
+    // if (isFound != null)
+    // isFound.value = value;
+    // else
+    // root = insertTree(key, value, root);
+    // return root;
     // }
 
-    public static Bucket deleteTree(Bucket root, int value) {
+    public static Bucket deleteTree(Bucket root, int value, int key) {
         int saveVal;
         Bucket newDelNode;
-        Bucket delNode = searchTree(root, value);
+        Bucket delNode = searchTree(root, value, key);
         Bucket parent = parent(root, delNode);
         if (isLeaf(delNode)) {
             if (parent == null)
@@ -91,20 +94,21 @@ public class Bucket {
         }
         newDelNode = minVal(delNode.right);
         saveVal = newDelNode.value;
-        deleteTree(root, saveVal);
+        deleteTree(root, saveVal, key);
         delNode.value = saveVal;
         return root;
     }
 
     // finds the parent of the node
     public static Bucket parent(Bucket root, Bucket node) {
-        if (root == null || node == null) 
+        if (root == null || node == null)
             return null;
-        if (root.left == node || root.right == node) // return the root if the node equals to the left or the right branch
+        if (root.left == node || root.right == node) // return the root if the node equals to the left or the right
+                                                     // branch
             return root;
-        if (node.value < root.value) // go left 
+        if (node.value < root.value) // go left
             return parent(root.left, node);
-        if (node.value > root.value)  // go right
+        if (node.value > root.value) // go right
             return parent(root.right, node);
         else
             return null;
@@ -114,7 +118,7 @@ public class Bucket {
     private static Bucket minVal(Bucket root) {
         if (root.left == null)
             return root;
-        else  // we are checking only the left branch as it smaller than the right branch
+        else // we are checking only the left branch as it smaller than the right branch
             return minVal(root.left);
     }
 
@@ -145,8 +149,10 @@ public class Bucket {
             printTree(root.right);
         }
     }
-    public static int count(Bucket root){
-        if (root == null) return 0;
+
+    public static int count(Bucket root) {
+        if (root == null)
+            return 0;
         return 1 + count(root.left) + count(root.right);
     }
 }
