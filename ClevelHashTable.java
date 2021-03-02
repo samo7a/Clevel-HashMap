@@ -21,11 +21,11 @@ public class ClevelHashTable {
         }
     }
 
-    public void insert(int value, int key) {
+    public void insert(int key, int value) {
         // TODO
 
         // hash here
-        hash(key);
+        this.hash(key);
         // get the key from hashing, assign 0 for now
         // insert to bottom level
         if (Bucket.count(this.topLevel[keys[0]]) < 8) {
@@ -44,7 +44,7 @@ public class ClevelHashTable {
 
     }
 
-    public int search(int value, int key) {
+    public int search(int key, int value) {
         // TODO
         this.hash(key);
         // search bottom level
@@ -59,25 +59,33 @@ public class ClevelHashTable {
         return -1;
     }
 
-    public void delete(int value, int key) {
+    public void delete(int key, int value) {
         // TODO
         this.hash(key);
-        int index = this.search(value, key);
+        int index = search(value, key);
+        System.out.println("index = " + index);
         boolean topOrBottom = true; // true for topLevel, false for bottomLevel
         if (index == -1)
             return;
         for (int i = 0; i < keys.length; i++) {
             if (keys[i] == index) {
-                if (i <= 1)
+                if (i <= 1) {
                     topOrBottom = true;
-                else
+                    break;
+                }    
+                else{
                     topOrBottom = false;
+                    break;
+                }
+                    
             }
         }
         if (topOrBottom) { // if true, find in top level and delete it
             this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], value, key);
+            System.out.println("Deleting the node at top level");
             return;
         }
+        System.out.println("Deleting the node at bottom level");
         this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], value, key);
         return;
 
@@ -128,10 +136,25 @@ public class ClevelHashTable {
     }
 
     public void hash(Integer key) {
-        this.keys[0] = key.hashCode() % (size * 2);
-        this.keys[1] = keys[0] + size;
-        this.keys[2] = keys[0] / 2;
-        this.keys[3] = keys[1] / 2;
+        int num = key.hashCode();
+        if (num < 0) num *= -1;
+        this.keys[0] = num % (size * 2);
+        if (this.keys[0] > size)  this.keys[1] = this.keys[0] - size;
+        else this.keys[1] = keys[0] + size;
+        this.keys[2] = this.keys[0] / 2;
+        this.keys[3] = this.keys[1] / 2;
     }
+    public void printTable(){
+        System.out.println("Top Array:");
+        for (int i = 0; i < size * 2; i++){
+            System.out.print("    Tree no. " + i + ": ");
+            Bucket.printTree(this.topLevel[i]);
+        }
 
+        System.out.println("Bottom Array:");
+        for (int i = 0; i < size; i++){
+            System.out.print("    Tree no. " + i + ": ");
+            Bucket.printTree(this.bottomLevel[i]);
+        }
+    }
 }
