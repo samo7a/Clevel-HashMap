@@ -21,11 +21,11 @@ public class ClevelHashTable {
         }
     }
 
-    public void insert(int key, int value) {
+    public void insert(String key, int value) {
         // TODO
 
         // hash here
-        this.hash(key);
+        this.hash(key, value);
         // get the key from hashing, assign 0 for now
         // insert to bottom level
         if (Bucket.count(this.topLevel[keys[0]]) < 8) {
@@ -39,30 +39,30 @@ public class ClevelHashTable {
         } else {
             // resize and try to insert again
             this.resize();
-            this.insert(value, key);
+            this.insert(key, value);
         }
 
     }
 
-    public int search(int key, int value) {
+    public int search(String key, int value) {
         // TODO
-        this.hash(key);
+        this.hash(key, value);
         // search bottom level
-        if (Bucket.searchTree(this.bottomLevel[keys[2]], value, key) != null)
+        if (Bucket.searchTree(this.bottomLevel[keys[2]], key, value) != null)
             return keys[2];
-        if (Bucket.searchTree(this.bottomLevel[keys[3]], value, key) != null)
+        if (Bucket.searchTree(this.bottomLevel[keys[3]], key, value) != null)
             return keys[3];
-        if (Bucket.searchTree(this.topLevel[keys[0]], value, key) != null)
+        if (Bucket.searchTree(this.topLevel[keys[0]], key, value) != null)
             return keys[0];
-        if (Bucket.searchTree(this.topLevel[keys[1]], value, key) != null)
+        if (Bucket.searchTree(this.topLevel[keys[1]], key, value) != null)
             return keys[1];
         return -1;
     }
 
-    public void delete(int key, int value) {
+    public void delete(String key, int value) {
         // TODO
-        this.hash(key);
-        int index = search(value, key);
+        this.hash(key, value);
+        int index = this.search(key, value);
         System.out.println("index = " + index);
         boolean topOrBottom = true; // true for topLevel, false for bottomLevel
         if (index == -1)
@@ -72,21 +72,20 @@ public class ClevelHashTable {
                 if (i <= 1) {
                     topOrBottom = true;
                     break;
-                }    
-                else{
+                } else {
                     topOrBottom = false;
                     break;
                 }
-                    
+
             }
         }
         if (topOrBottom) { // if true, find in top level and delete it
-            this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], value, key);
+            this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key, value);
             System.out.println("Deleting the node at top level");
             return;
         }
         System.out.println("Deleting the node at bottom level");
-        this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], value, key);
+        this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key, value);
         return;
 
     }
@@ -121,12 +120,36 @@ public class ClevelHashTable {
         if (root == null)
             return;
         // hashing the new index for the key in the root
-        hash(root.key);
+        hash(root.key, root.value);
         // insert node value into new position in the array
-        array[keys[0]] = Bucket.insertTree(root.key, root.value, array[keys[0]]);
+        insertRehash(root.key, root.value, array);
+        // if (Bucket.count(root) < 8)
+        // array[keys[0]] = Bucket.insertTree(root.key, root.value, array[keys[0]]);
+        // else
+        // array[keys[1]] = Bucket.insertTree(root.key, root.value, array[keys[1]]);
         // traverse left & right
         reHashNode(root.left, array);
         reHashNode(root.right, array);
+
+    }
+
+    public void insertRehash(String key, int value, Bucket[] newLevel) {
+
+        // get the key from hashing, assign 0 for now
+        // insert to bottom level
+        if (Bucket.count(newLevel[keys[0]]) < 8) {
+            newLevel[keys[0]] = Bucket.insertTree(key, value, newLevel[keys[0]]);
+        } else if (Bucket.count(newLevel[keys[1]]) < 8) {
+            newLevel[keys[1]] = Bucket.insertTree(key, value, newLevel[keys[1]]);
+        } else if (Bucket.count(this.topLevel[keys[2]]) < 8) {
+            this.topLevel[keys[2]] = Bucket.insertTree(key, value, this.topLevel[keys[2]]);
+        } else if (Bucket.count(this.topLevel[keys[3]]) < 8) {
+            this.topLevel[keys[3]] = Bucket.insertTree(key, value, this.topLevel[keys[3]]);
+        } else {
+            // resize and try to insert again
+            this.resize();
+            this.insert(key, value);
+        }
 
     }
 
@@ -135,26 +158,33 @@ public class ClevelHashTable {
         return value;
     }
 
-    public void hash(Integer key) {
-        int num = key.hashCode();
-        if (num < 0) num *= -1;
+    public void hash(String key, Integer value) {
+        int num = key.hashCode() + value.hashCode();
+        if (num < 0)
+            num *= -1;
         this.keys[0] = num % (size * 2);
-        if (this.keys[0] > size)  this.keys[1] = this.keys[0] - size;
-        else this.keys[1] = keys[0] + size;
+        if (this.keys[0] >= size)
+            this.keys[1] = this.keys[0] - size;
+        else
+            this.keys[1] = keys[0] + size;
+
         this.keys[2] = this.keys[0] / 2;
         this.keys[3] = this.keys[1] / 2;
     }
-    public void printTable(){
+
+    public void printTable() {
         System.out.println("Top Array:");
-        for (int i = 0; i < size * 2; i++){
+        for (int i = 0; i < size * 2; i++) {
             System.out.print("    Tree no. " + i + ": ");
             Bucket.printTree(this.topLevel[i]);
+            System.out.println();
         }
-
+        System.out.println();
         System.out.println("Bottom Array:");
-        for (int i = 0; i < size; i++){
+        for (int i = 0; i < size; i++) {
             System.out.print("    Tree no. " + i + ": ");
             Bucket.printTree(this.bottomLevel[i]);
+            System.out.println();
         }
     }
 }

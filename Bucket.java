@@ -1,21 +1,22 @@
 // the bucket that will hold the value, the key, and the right and left pointers (aka: references)
 public class Bucket {
-    public int key;
+    public String key;
     public int value;
     Bucket left;
     Bucket right;
     final static int LIMIT = 8;
 
     // constructors
-    public Bucket(int key, int value) {
+    public Bucket(String key, int value) {
         this.key = key;
         this.value = value;
         left = null;
         right = null;
     }
 
-    public static Bucket insertTree(int key, int value, Bucket root) {
+    public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value); // create a bucket with a the key and the value
+
         if (root == null) // if root is null
             return temp; // return the new bucket to be the root
         if (root.value == value) // if the root's value equal the inserted value
@@ -34,16 +35,16 @@ public class Bucket {
         return root; // return the root at the end
     }
 
-    public static Bucket searchTree(Bucket root, int value, int key) {
+    public static Bucket searchTree(Bucket root, String key, int value) {
         if (root != null) { // if the root exists
             if (root.value == value && root.key == key) // if the root's value equals the searched item's value, return
                                                         // the root
                 return root;
             if (root.value > value) // if the root's value is larger than the searched item's value, search the left
                                     // node
-                return searchTree(root.left, value, key);
+                return searchTree(root.left, key, value);
             else
-                return searchTree(root.right, value, key); // if the root's value is smaller than the searched item's
+                return searchTree(root.right, key, value); // if the root's value is smaller than the searched item's
                                                            // value,
             // search the right node
         } else // if the root does not exist, return null
@@ -60,14 +61,14 @@ public class Bucket {
     // return root;
     // }
 
-    public static Bucket deleteTree(Bucket root, int value, int key) {
+    public static Bucket deleteTree(Bucket root, String key, int value) {
         int saveVal;
         Bucket newDelNode;
-        Bucket delNode = searchTree(root, value, key);
+        Bucket delNode = searchTree(root, key, value);
         Bucket parent = parent(root, delNode);
         if (isLeaf(delNode)) {
             if (parent == null)
-                return root;
+                return null;
             if (value < parent.value)
                 parent.left = null;
             else
@@ -94,7 +95,7 @@ public class Bucket {
         }
         newDelNode = minVal(delNode.right);
         saveVal = newDelNode.value;
-        deleteTree(root, saveVal, key);
+        deleteTree(root, key, saveVal);
         delNode.value = saveVal;
         return root;
     }
@@ -144,8 +145,9 @@ public class Bucket {
     // printing inorder for Testing
     public static void printTree(Bucket root) {
         if (root != null) {
-            printTree(root.left);
             System.out.printf("%d ", root.value);
+            printTree(root.left);
+
             printTree(root.right);
         }
     }
