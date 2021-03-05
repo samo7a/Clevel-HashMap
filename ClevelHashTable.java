@@ -1,29 +1,34 @@
-public class ClevelHashTable {
+import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
+public class ClevelHashTable implements Runnable {
     // the hash table will have 2 levels, and an isResizing flag
     boolean isResizing;
     public Bucket[] topLevel; // array of buckets
     public Bucket[] bottomLevel;
-    int size; // size of the bottom level
+    int bottomSize; // size of the bottom level
+    int topSize;
     int[] keys;
-
+    ReentrantLock lock = new ReentrantLock();
     // constructor
     public ClevelHashTable() {
-        size = 4; // initial size is 4, will be doubled in each resizing
+        bottomSize = 4; // initial size is 4, will be doubled in each resizing
+        topSize = bottomSize * 2;
         isResizing = false; // the hash table is not resizing, we are just initializing it
-        topLevel = new Bucket[size * 2]; // the top level array is twice the size of the bottom one
-        bottomLevel = new Bucket[size];
+        topLevel = new Bucket[topSize]; // the top level array is twice the size of the bottom one
+        bottomLevel = new Bucket[bottomSize];
         // store the 4 generated hash keys of the value
         keys = new int[4];
-        for (int i = 0; i < size; i++) { // initializing each element in the array
+        for (int i = 0; i < bottomSize; i++) { // initializing each element in the array
             topLevel[i] = null;
-            topLevel[i + size] = null;
+            topLevel[i + bottomSize] = null;
             bottomLevel[i] = null;
         }
     }
 
-    public void insert(String key, int value) {
+    public void insert(String key, Integer value) {
         // TODO
-
+        // calls worker thread
+        lock.lock();
         // hash here
         this.hash(key, value);
         // get the key from hashing, assign 0 for now
@@ -41,10 +46,10 @@ public class ClevelHashTable {
             this.resize();
             this.insert(key, value);
         }
-
+        lock.unlock();
     }
 
-    public int search(String key, int value) {
+    public int search(String key, Integer value) {
         // TODO
         this.hash(key, value);
         // search bottom level
@@ -59,7 +64,7 @@ public class ClevelHashTable {
         return -1;
     }
 
-    public void delete(String key, int value) {
+    public void delete(String key, Integer value) {
         // TODO
         this.hash(key, value);
         int index = this.search(key, value);
@@ -95,13 +100,15 @@ public class ClevelHashTable {
         isResizing = true;
         // get the new size for the bottom level
         // I assume the size would be doubled based on the discord chat
-        this.size *= 2;
-        Bucket[] newLevel = new Bucket[size * 2];
+        bottomSize *= 2;
+        topSize *= 2;
+        Bucket[] newLevel = new Bucket[topSize];
         // go thru the current bottom level to rehash every element
         for (Bucket root : bottomLevel) {
             // rehash every node in the tree
             reHashNode(root, newLevel);
         }
+
         // bottomLevel = new Bucket[size];
         // assign the current top level as bottom
         this.bottomLevel = topLevel;
@@ -123,17 +130,17 @@ public class ClevelHashTable {
         hash(root.key, root.value);
         // insert node value into new position in the array
         insertRehash(root.key, root.value, array);
-        // if (Bucket.count(root) < 8)
-        // array[keys[0]] = Bucket.insertTree(root.key, root.value, array[keys[0]]);
-        // else
-        // array[keys[1]] = Bucket.insertTree(root.key, root.value, array[keys[1]]);
+        if (Bucket.count(root) < 8)
+            array[keys[0]] = Bucket.insertTree(root.key, root.value, array[keys[0]]);
+        else
+            array[keys[1]] = Bucket.insertTree(root.key, root.value, array[keys[1]]);
         // traverse left & right
         reHashNode(root.left, array);
         reHashNode(root.right, array);
 
     }
 
-    public void insertRehash(String key, int value, Bucket[] newLevel) {
+    public void insertRehash(String key, Integer value, Bucket[] newLevel) {
 
         // get the key from hashing, assign 0 for now
         // insert to bottom level
@@ -153,38 +160,63 @@ public class ClevelHashTable {
 
     }
 
-    public int update(int value) {
-        // TODO
+    public int update(String key, Integer value) {
+        // Bucket deleteTree(Bucket root, String key, int value)
+        // Bucket test = Bucket.deleteTree(this.bottomLevel[], key, value);
+        // if (test == null) {
+        //     Bucket.deleteTree(this.bottomLevel[0], key, value);
+        // }
+        this.delete(key, value);
+        this.insert(key, value);
         return value;
     }
 
     public void hash(String key, Integer value) {
+        // so that we can get a unique hashkey and avoid duplicates
         int num = key.hashCode() + value.hashCode();
         if (num < 0)
             num *= -1;
-        this.keys[0] = num % (size * 2);
-        if (this.keys[0] >= size)
-            this.keys[1] = this.keys[0] - size;
-        else
-            this.keys[1] = keys[0] + size;
 
-        this.keys[2] = this.keys[0] / 2;
-        this.keys[3] = this.keys[1] / 2;
+
+        this.keys[0] = num % (topSize);
+        if (this.keys[0] >= topSize / 2)
+            this.keys[1] = this.keys[0] - topSize / 2;
+        else
+            this.keys[1] = keys[0] + topSize / 2;
+
+        this.keys[2] = num % bottomSize;
+        if (this.keys[2] >= bottomSize / 2)
+            this.keys[3] = this.keys[2] - bottomSize / 2;
+        else
+            this.keys[3] = keys[2] + bottomSize / 2;
     }
 
     public void printTable() {
         System.out.println("Top Array:");
-        for (int i = 0; i < size * 2; i++) {
+        for (int i = 0; i < topSize; i++) {
             System.out.print("    Tree no. " + i + ": ");
             Bucket.printTree(this.topLevel[i]);
             System.out.println();
         }
         System.out.println();
         System.out.println("Bottom Array:");
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < bottomSize; i++) {
             System.out.print("    Tree no. " + i + ": ");
             Bucket.printTree(this.bottomLevel[i]);
             System.out.println();
+        }
+    }
+    
+    public int assignOperation() {       
+        Random rndm = new Random();
+        return rndm.nextInt(100) + 8;
+    }
+    
+    @Override
+    public void run() {
+        //System.out.println("hello I am a thread!");
+        for (int i = 0; i < 50; i++){
+            this.insert(Integer.valueOf(i).toString(),assignOperation());
         }
     }
 }

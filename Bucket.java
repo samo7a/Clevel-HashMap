@@ -4,7 +4,7 @@ public class Bucket {
     public int value;
     Bucket left;
     Bucket right;
-    final static int LIMIT = 8;
+    static final int LIMIT = 8;
 
     // constructors
     public Bucket(String key, int value) {
@@ -37,7 +37,7 @@ public class Bucket {
 
     public static Bucket searchTree(Bucket root, String key, int value) {
         if (root != null) { // if the root exists
-            if (root.value == value && root.key == key) // if the root's value equals the searched item's value, return
+            if (root.value == value && root.key.equals(key)) // if the root's value equals the searched item's value, return
                                                         // the root
                 return root;
             if (root.value > value) // if the root's value is larger than the searched item's value, search the left
@@ -72,7 +72,7 @@ public class Bucket {
             if (value < parent.value)
                 parent.left = null;
             else
-                parent.right = null;
+                parent.right = null; 
             return root;
         }
         if (hasOnlyLeftChild(delNode)) {
