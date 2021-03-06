@@ -4,19 +4,18 @@ public class Bucket {
     public int value;
     Bucket left;
     Bucket right;
-    static final int LIMIT = 8;
+    static final int LIMIT = 8; // limit the number of nodes in a tree
 
     // constructors
     public Bucket(String key, int value) {
         this.key = key;
         this.value = value;
-        left = null;
-        right = null;
+        this.left = null;
+        this.right = null;
     }
 
     public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value); // create a bucket with a the key and the value
-
         if (root == null) // if root is null
             return temp; // return the new bucket to be the root
         if (root.value == value) // if the root's value equal the inserted value
@@ -37,8 +36,9 @@ public class Bucket {
 
     public static Bucket searchTree(Bucket root, String key, int value) {
         if (root != null) { // if the root exists
-            if (root.value == value && root.key.equals(key)) // if the root's value equals the searched item's value, return
-                                                        // the root
+            if (root.value == value && root.key.equals(key)) // if the root's value equals the searched item's value,
+                                                             // return
+                // the root
                 return root;
             if (root.value > value) // if the root's value is larger than the searched item's value, search the left
                                     // node
@@ -62,17 +62,18 @@ public class Bucket {
     // }
 
     public static Bucket deleteTree(Bucket root, String key, int value) {
-        int saveVal;
-        Bucket newDelNode;
-        Bucket delNode = searchTree(root, key, value);
-        Bucket parent = parent(root, delNode);
-        if (isLeaf(delNode)) {
-            if (parent == null)
+        int saveVal; // var to save a value
+        Bucket newDelNode; // intermediate node that helps in deleting
+        Bucket delNode = searchTree(root, key, value); // search and check if the node we want to delete it is in the
+                                                       // tree
+        Bucket parent = parent(root, delNode); // find the parent node of the deleted node
+        if (isLeaf(delNode)) { // if the deleted node is leaf
+            if (parent == null) // if it has no parent, therefore it does not exits
                 return null;
-            if (value < parent.value)
-                parent.left = null;
-            else
-                parent.right = null; 
+            if (value < parent.value) // if it has a parent, and the value of it is less than the parent's value
+                parent.left = null; // delete it by pointing the parent's left branch to null
+            else // if the value is greater than the parent's value.
+                parent.right = null; // point the right branch to null
             return root;
         }
         if (hasOnlyLeftChild(delNode)) {
@@ -142,16 +143,15 @@ public class Bucket {
         return (node.left == null && node.right != null);
     }
 
-    // printing inorder for Testing
+    // printing preorder for Testing
     public static void printTree(Bucket root) {
         if (root != null) {
             System.out.printf("%d ", root.value);
-            printTree(root.left);
-
+            printTree(root.left);   
             printTree(root.right);
         }
     }
-
+    // counts how many nodes are there in a tree
     public static int count(Bucket root) {
         if (root == null)
             return 0;

@@ -1,18 +1,20 @@
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
+
 public class ClevelHashTable implements Runnable {
     // the hash table will have 2 levels, and an isResizing flag
     boolean isResizing;
     public Bucket[] topLevel; // array of buckets
     public Bucket[] bottomLevel;
     int bottomSize; // size of the bottom level
-    int topSize;
-    int[] keys;
-    ReentrantLock lock = new ReentrantLock();
+    int topSize; // size of the top level
+    int[] keys; // keys of 4 hash keys
+    ReentrantLock lock = new ReentrantLock(); // lock, probably will be deleted soon.
     // constructor
+
     public ClevelHashTable() {
         bottomSize = 4; // initial size is 4, will be doubled in each resizing
-        topSize = bottomSize * 2;
+        topSize = bottomSize * 2; // initial size is 8.
         isResizing = false; // the hash table is not resizing, we are just initializing it
         topLevel = new Bucket[topSize]; // the top level array is twice the size of the bottom one
         bottomLevel = new Bucket[bottomSize];
@@ -26,13 +28,13 @@ public class ClevelHashTable implements Runnable {
     }
 
     public void insert(String key, Integer value) {
-        // TODO
         // calls worker thread
-        lock.lock();
+        lock.lock(); // lock just for testing
         // hash here
-        this.hash(key, value);
-        // get the key from hashing, assign 0 for now
-        // insert to bottom level
+        this.hash(key, value); // update the keys array
+
+        // tries to insert in the 2 top locations first, then jump to the bottom level
+        // doing the same
         if (Bucket.count(this.topLevel[keys[0]]) < 8) {
             this.topLevel[keys[0]] = Bucket.insertTree(key, value, this.topLevel[keys[0]]);
         } else if (Bucket.count(this.topLevel[keys[1]]) < 8) {
@@ -42,17 +44,18 @@ public class ClevelHashTable implements Runnable {
         } else if (Bucket.count(this.bottomLevel[keys[3]]) < 8) {
             this.bottomLevel[keys[3]] = Bucket.insertTree(key, value, this.bottomLevel[keys[3]]);
         } else {
-            // resize and try to insert again
+            // if it fails to insert in any level
+            // it will resize itself and try to insert again
             this.resize();
             this.insert(key, value);
         }
         lock.unlock();
     }
 
+    // returns the loction of the value
     public int search(String key, Integer value) {
-        // TODO
-        this.hash(key, value);
-        // search bottom level
+        this.hash(key, value); // another hash
+        // search bottom level (bottom up search)
         if (Bucket.searchTree(this.bottomLevel[keys[2]], key, value) != null)
             return keys[2];
         if (Bucket.searchTree(this.bottomLevel[keys[3]], key, value) != null)
@@ -61,17 +64,18 @@ public class ClevelHashTable implements Runnable {
             return keys[0];
         if (Bucket.searchTree(this.topLevel[keys[1]], key, value) != null)
             return keys[1];
-        return -1;
+        return -1; // returns -1 if not found
     }
 
     public void delete(String key, Integer value) {
-        // TODO
-        this.hash(key, value);
-        int index = this.search(key, value);
-        System.out.println("index = " + index);
+        this.hash(key, value); // another hash
+        int index = this.search(key, value); // search the index
+        // System.out.println("index = " + index);
         boolean topOrBottom = true; // true for topLevel, false for bottomLevel
-        if (index == -1)
+        if (index == -1) // not found
             return;
+
+        // trying to figure out if it is in the top or bottom level
         for (int i = 0; i < keys.length; i++) {
             if (keys[i] == index) {
                 if (i <= 1) {
@@ -86,10 +90,10 @@ public class ClevelHashTable implements Runnable {
         }
         if (topOrBottom) { // if true, find in top level and delete it
             this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key, value);
-            System.out.println("Deleting the node at top level");
+            // System.out.println("Deleting the node at top level");
             return;
         }
-        System.out.println("Deleting the node at bottom level");
+        // System.out.println("Deleting the node at bottom level");
         this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key, value);
         return;
 
@@ -164,7 +168,7 @@ public class ClevelHashTable implements Runnable {
         // Bucket deleteTree(Bucket root, String key, int value)
         // Bucket test = Bucket.deleteTree(this.bottomLevel[], key, value);
         // if (test == null) {
-        //     Bucket.deleteTree(this.bottomLevel[0], key, value);
+        // Bucket.deleteTree(this.bottomLevel[0], key, value);
         // }
         this.delete(key, value);
         this.insert(key, value);
@@ -176,7 +180,6 @@ public class ClevelHashTable implements Runnable {
         int num = key.hashCode() + value.hashCode();
         if (num < 0)
             num *= -1;
-
 
         this.keys[0] = num % (topSize);
         if (this.keys[0] >= topSize / 2)
@@ -206,17 +209,17 @@ public class ClevelHashTable implements Runnable {
             System.out.println();
         }
     }
-    
-    public int assignOperation() {       
+
+    public int assignOperation() {
         Random rndm = new Random();
         return rndm.nextInt(100) + 8;
     }
-    
+
     @Override
     public void run() {
-        //System.out.println("hello I am a thread!");
-        for (int i = 0; i < 50; i++){
-            this.insert(Integer.valueOf(i).toString(),assignOperation());
+        // System.out.println("hello I am a thread!");
+        for (int i = 0; i < 50; i++) {
+            this.insert(Integer.valueOf(i).toString(), assignOperation());
         }
     }
 }
