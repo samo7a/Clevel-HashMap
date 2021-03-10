@@ -146,7 +146,7 @@ public class Bucket {
     // printing preorder for Testing
     public static void printTree(Bucket root) {
         if (root != null) {
-            System.out.printf("%d ", root.value);
+            System.out.printf("(key:%s , value: %d)",root.key, root.value);
             printTree(root.left);   
             printTree(root.right);
         }

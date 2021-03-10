@@ -18,7 +18,7 @@ public class Main {
         System.out.println();
 
         ArrayList<Thread> threads = new ArrayList<>(); 
-		for (int i = 0; i < 4; i++) threads.add(new Thread(hashtable)); 
+		for (int i = 0; i < 4; i++) threads.add(new Thread(hashtable));
         //starting the threads
 		for (int i = 0; i < 4; i++) threads.get(i).start();
 		
@@ -34,17 +34,7 @@ public class Main {
         hashtable.printTable();
         System.out.println();
 
-        // Random rndm = new Random();
-        // int job = rndm.nextInt(3);
-        // int person = rndm.nextInt(3);
-        // if (job == 0) System.out.println("Insert");
-        // else if (job == 1) System.out.println("Search");
-        // else System.out.println("Delete");
-
-        // if (person == 0) System.out.println("Q");
-        // else if (job == 1) System.out.println("Ah");
-        // else System.out.println("Ak");
-
-
+        System.out.println(hashtable.search("hello", 4));
+        
     }
 }

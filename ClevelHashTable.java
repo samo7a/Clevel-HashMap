@@ -1,3 +1,4 @@
+import java.nio.charset.Charset;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -8,7 +9,6 @@ public class ClevelHashTable implements Runnable {
     public Bucket[] bottomLevel;
     int bottomSize; // size of the bottom level
     int topSize; // size of the top level
-    int[] keys; // keys of 4 hash keys
     ReentrantLock lock = new ReentrantLock(); // lock, probably will be deleted soon.
     // constructor
 
@@ -19,7 +19,6 @@ public class ClevelHashTable implements Runnable {
         topLevel = new Bucket[topSize]; // the top level array is twice the size of the bottom one
         bottomLevel = new Bucket[bottomSize];
         // store the 4 generated hash keys of the value
-        keys = new int[4];
         for (int i = 0; i < bottomSize; i++) { // initializing each element in the array
             topLevel[i] = null;
             topLevel[i + bottomSize] = null;
@@ -29,9 +28,9 @@ public class ClevelHashTable implements Runnable {
 
     public void insert(String key, Integer value) {
         // calls worker thread
-        lock.lock(); // lock just for testing
+        //lock.lock();
         // hash here
-        this.hash(key, value); // update the keys array
+        int[] keys = this.hash(key, value); // update the keys array
 
         // tries to insert in the 2 top locations first, then jump to the bottom level
         // doing the same
@@ -49,12 +48,12 @@ public class ClevelHashTable implements Runnable {
             this.resize();
             this.insert(key, value);
         }
-        lock.unlock();
+        //lock.unlock();
     }
 
     // returns the loction of the value
     public int search(String key, Integer value) {
-        this.hash(key, value); // another hash
+        int[] keys = this.hash(key, value); // another hash
         // search bottom level (bottom up search)
         if (Bucket.searchTree(this.bottomLevel[keys[2]], key, value) != null)
             return keys[2];
@@ -68,9 +67,8 @@ public class ClevelHashTable implements Runnable {
     }
 
     public void delete(String key, Integer value) {
-        this.hash(key, value); // another hash
+        int[] keys = this.hash(key, value); // another hash
         int index = this.search(key, value); // search the index
-        // System.out.println("index = " + index);
         boolean topOrBottom = true; // true for topLevel, false for bottomLevel
         if (index == -1) // not found
             return;
@@ -78,22 +76,17 @@ public class ClevelHashTable implements Runnable {
         // trying to figure out if it is in the top or bottom level
         for (int i = 0; i < keys.length; i++) {
             if (keys[i] == index) {
-                if (i <= 1) {
+                if (i <= 1)
                     topOrBottom = true;
-                    break;
-                } else {
+                else
                     topOrBottom = false;
-                    break;
-                }
-
+                break;
             }
         }
         if (topOrBottom) { // if true, find in top level and delete it
             this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key, value);
-            // System.out.println("Deleting the node at top level");
             return;
         }
-        // System.out.println("Deleting the node at bottom level");
         this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key, value);
         return;
 
@@ -127,20 +120,20 @@ public class ClevelHashTable implements Runnable {
         isResizing = false;
     }
 
-    public void reHashNode(Bucket root, Bucket[] array) {
+    public void reHashNode(Bucket root, Bucket[] newLevel) {
         if (root == null)
             return;
         // hashing the new index for the key in the root
-        hash(root.key, root.value);
+        int[] keys = this.hash(root.key, root.value);
         // insert node value into new position in the array
-        insertRehash(root.key, root.value, array);
+        insertRehash(root.key, root.value, newLevel);
         if (Bucket.count(root) < 8)
-            array[keys[0]] = Bucket.insertTree(root.key, root.value, array[keys[0]]);
+            newLevel[keys[0]] = Bucket.insertTree(root.key, root.value, newLevel[keys[0]]);
         else
-            array[keys[1]] = Bucket.insertTree(root.key, root.value, array[keys[1]]);
+            newLevel[keys[1]] = Bucket.insertTree(root.key, root.value, newLevel[keys[1]]);
         // traverse left & right
-        reHashNode(root.left, array);
-        reHashNode(root.right, array);
+        reHashNode(root.left, newLevel);
+        reHashNode(root.right, newLevel);
 
     }
 
@@ -148,6 +141,7 @@ public class ClevelHashTable implements Runnable {
 
         // get the key from hashing, assign 0 for now
         // insert to bottom level
+        int[] keys = this.hash(key, value);
         if (Bucket.count(newLevel[keys[0]]) < 8) {
             newLevel[keys[0]] = Bucket.insertTree(key, value, newLevel[keys[0]]);
         } else if (Bucket.count(newLevel[keys[1]]) < 8) {
@@ -175,51 +169,67 @@ public class ClevelHashTable implements Runnable {
         return value;
     }
 
-    public void hash(String key, Integer value) {
+    public int[] hash(String key, Integer value) {
         // so that we can get a unique hashkey and avoid duplicates
+        int[] keys = new int[4];
         int num = key.hashCode() + value.hashCode();
         if (num < 0)
             num *= -1;
 
-        this.keys[0] = num % (topSize);
-        if (this.keys[0] >= topSize / 2)
-            this.keys[1] = this.keys[0] - topSize / 2;
+        keys[0] = num % (topSize);
+        if (keys[0] >= topSize / 2)
+            keys[1] = keys[0] - topSize / 2;
         else
-            this.keys[1] = keys[0] + topSize / 2;
+            keys[1] = keys[0] + topSize / 2;
 
-        this.keys[2] = num % bottomSize;
-        if (this.keys[2] >= bottomSize / 2)
-            this.keys[3] = this.keys[2] - bottomSize / 2;
+        keys[2] = num % bottomSize;
+        if (keys[2] >= bottomSize / 2)
+            keys[3] = keys[2] - bottomSize / 2;
         else
-            this.keys[3] = keys[2] + bottomSize / 2;
+            keys[3] = keys[2] + bottomSize / 2;
+        return keys;
     }
 
     public void printTable() {
         System.out.println("Top Array:");
         for (int i = 0; i < topSize; i++) {
-            System.out.print("    Tree no. " + i + ": ");
+            System.out.print("    Tree no. " + i + ": {");
             Bucket.printTree(this.topLevel[i]);
-            System.out.println();
+            System.out.println("}");
         }
         System.out.println();
         System.out.println("Bottom Array:");
         for (int i = 0; i < bottomSize; i++) {
-            System.out.print("    Tree no. " + i + ": ");
+            System.out.print("    Tree no. " + i + ": {");
             Bucket.printTree(this.bottomLevel[i]);
-            System.out.println();
+            System.out.println("}");
         }
     }
 
-    public int assignOperation() {
-        Random rndm = new Random();
-        return rndm.nextInt(100) + 8;
+    // public int assignOperation() {
+    // Random rndm = new Random();
+    // return rndm.nextInt(100) + 8;
+    // }
+    private static String generateRandom(String aToZ) {
+        Random rand = new Random();
+        StringBuilder res = new StringBuilder();
+        for (int i = 0; i < 5; i++) {
+            int randIndex = rand.nextInt(aToZ.length());
+            res.append(aToZ.charAt(randIndex));
+        }
+        return res.toString();
     }
 
     @Override
     public void run() {
         // System.out.println("hello I am a thread!");
-        for (int i = 0; i < 50; i++) {
-            this.insert(Integer.valueOf(i).toString(), assignOperation());
+
+        for (int i = 0; i < 10; i++) {
+            String aToZ = "ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz"; // 36 letter.
+            String generatedString = generateRandom(aToZ);
+            this.insert(generatedString, i);
         }
+        // int i = assignOperation();
+        // this.insert(Integer.valueOf(i).toString(), assignOperation());
     }
 }
