@@ -1,37 +1,88 @@
+/*Binary Search Tree using LazySynchronization from the lectures*/
+
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+
 // the bucket that will hold the value, the key, and the right and left pointers (aka: references)
 public class Bucket {
     public String key;
     public int value;
-    Bucket left;
-    Bucket right;
+    volatile Bucket left;
+    volatile Bucket right;
+    public boolean isMarked;
+    private Lock lock;
     static final int LIMIT = 8; // limit the number of nodes in a tree
+    private AtomicInteger size;
 
     // constructors
     public Bucket(String key, int value) {
+        this.size = new AtomicInteger(0);
         this.key = key;
         this.value = value;
         this.left = null;
         this.right = null;
+        this.isMarked = false;
+        lock = new ReentrantLock();
     }
 
+    // converted the recursive function to iterative one.
+    // it was hard to work with concurrentency and recursibley at the same time.
     public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value); // create a bucket with a the key and the value
-        if (root == null) // if root is null
+        if (root == null) {// if root is null
+            temp.size.getAndIncrement();
             return temp; // return the new bucket to be the root
-        if (root.value == value) // if the root's value equal the inserted value
-            return root; // return the root and do nothing (do not allow dublicates).
-        if (value < root.value) { // if the new value to be inserted is less than root's value
-            if (root.left != null) // and the left node is not null
-                root.left = insertTree(key, value, root.left); // try to insert the value in the left branch
-            else // else if the left node is null
-                root.left = temp; // let the left node to be the new node
-        } else { // if the new value to be inserted is larger than the root's value
-            if (root.right != null) // do the same thing but for the right branch
-                root.right = insertTree(key, value, root.right);
-            else
-                root.right = temp;
         }
-        return root; // return the root at the end
+
+        if (root.value == value) { // if the root's value equal the inserted value
+            return root; // return the root and do nothing (do not allow dublicates).
+        }
+        Bucket current = root;
+        Bucket parent = parent(root, current);
+        Bucket grandParent = parent(root, parent);
+
+        while (current.left != null || current.right != null) {
+            grandParent = parent;
+            parent = current;
+            if (value > current.value)
+                current = current.left;
+            else
+                current = current.right;
+        }
+        if (grandParent != null)
+            grandParent.lock();
+
+        try {
+            parent.lock();
+            try {
+                current.lock();
+                try {
+                    // validate that all locked nodes are still part of the tree and unchanged.
+                    if (!validate(grandParent, parent, current)) {
+                        throw new IllegalStateException();
+                    }
+
+                    // create new internal node and attach new leaf and current to it
+                    if (value > current.value) {
+                        current.right = temp;
+                    } else {
+                        current.left = temp;
+                    }
+                    // increment size by one
+                    root.size.getAndIncrement();
+                    return root;
+
+                } finally {
+                    current.unlock();
+                }
+            } finally {
+                parent.unlock();
+            }
+        } finally {
+            if (grandParent != null)
+                grandParent.unlock();
+        }
     }
 
     public static Bucket searchTree(Bucket root, String key, int value) {
@@ -146,15 +197,47 @@ public class Bucket {
     // printing preorder for Testing
     public static void printTree(Bucket root) {
         if (root != null) {
-            System.out.printf("(key:%s , value: %d)",root.key, root.value);
-            printTree(root.left);   
+            // System.out.printf("(key:%s , value: %d)",root.key, root.value);
+            printTree(root.left);
+            System.out.printf("(key:%s , value: %d)", root.key, root.value);
             printTree(root.right);
+            // System.out.printf("(key:%s , value: %d)",root.key, root.value);
         }
     }
+
     // counts how many nodes are there in a tree
     public static int count(Bucket root) {
         if (root == null)
             return 0;
         return 1 + count(root.left) + count(root.right);
+    }
+
+    public void lock() {
+        lock.lock();
+    }
+
+    public void unlock() {
+        lock.unlock();
+    }
+
+    private static boolean validate(Bucket grandParent, Bucket parent, Bucket current) {
+        // if grand parent does not equal to null
+        if (grandParent == null) {
+            // both parent and current are not marked && parent is pointing to the child
+            if ((!current.isMarked) && (!parent.isMarked) && (current == parent.left || current == parent.right)) {
+                return true;
+            } else
+                return false;
+        } else { // grand parent is not null (we have to check him too)
+                 // grand parent, parent, and child are not marked
+            if ((!current.isMarked) && (!parent.isMarked) && (!grandParent.isMarked)) {
+                // grand parent is pointing to parent and parent is pointing to child
+                if ((current == parent.left || current == parent.right)
+                        && (parent == grandParent.left || parent == grandParent.right)) {
+                    return true;
+                }
+            } else
+                return false;
+        }
     }
 }
