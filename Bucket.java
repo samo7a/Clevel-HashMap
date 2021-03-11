@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 
 // the bucket that will hold the value, the key, and the right and left pointers (aka: references)
+// it will hold also an atomic boolean value for logical deletion.
 public class Bucket {
     public String key;
     public int value;
@@ -16,9 +17,9 @@ public class Bucket {
     static final int LIMIT = 8; // limit the number of nodes in a tree
     private AtomicInteger size;
 
-    // constructors
+    // constructor
     public Bucket(String key, int value) {
-        this.size = new AtomicInteger(0);
+        this.size = new AtomicInteger(0); // check the count method to know how this variable is used
         this.key = key;
         this.value = value;
         this.left = null;
@@ -27,21 +28,23 @@ public class Bucket {
         lock = new ReentrantLock();
     }
 
-    // converted the recursive function to iterative one.
-    // it was hard to work with concurrentency and recursibley at the same time.
+    /* converted the recursive functions to iterative one. */
+    /* it was hard to work with concurrentency and recursibley at the same time. */
+    /* delete still uses recursion!! */
+
     public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value); // create a bucket with a the key and the value
         if (root == null) {// if root is null
-            temp.size.getAndIncrement();
+            temp.size.getAndIncrement(); // increment the size of the root for every successfull insertion
             return temp; // return the new bucket to be the root
         }
 
         if (root.value == value) { // if the root's value equal the inserted value
             return root; // return the root and do nothing (do not allow dublicates).
         }
-        Bucket current = root;
+        Bucket current = root; // for traversing the tree
         Bucket parent = parent(root, current);
-
+        // traverse the tree
         while (current.left != null || current.right != null) {
             parent = current;
             if (current.left == null)
@@ -49,29 +52,29 @@ public class Bucket {
             else if (current.right == null)
                 current = current.left;
             if (current.value == value)
-                return root;
+                return root; // if the value exsits, return the root. Don't proceed further
 
         }
-
+        // locking the parent and the child (current)
         try {
-            if (parent != null)
+            if (parent != null) // check if it is null or not, we cannot apply a lock on a null object
                 parent.lock();
             try {
                 current.lock();
                 try {
-                    // validate that all locked nodes are still part of the tree and unchanged.
+                    // abory if validation failed
                     if (!validate(parent, current)) {
                         return root;
                     }
-
-                    // create new internal node and attach new leaf and current to it
+                    // insert left or right depends on the value of the current node and the
+                    // inserted node.
                     if (value > current.value) {
                         current.right = temp;
                     } else {
                         current.left = temp;
                     }
-                    return root;
-
+                    return root; // return the root at the end
+                    // unlock current and parent
                 } finally {
                     current.unlock();
                 }
@@ -86,7 +89,7 @@ public class Bucket {
     }
 
     public static Bucket searchTree(Bucket root, String key, int value) {
-        if (root == null)
+        if (root == null) // it is not there
             return null;
         if (root.value == value && root.key.equals(key)) // if the root's value equals the searched item's value,
                                                          // return root
@@ -102,59 +105,14 @@ public class Bucket {
             else if (current.right == null)
                 current = current.left;
             if (current.key.equals(key) && current.value == value && !current.isMarked.get())
-                return current;
+                return current; // busted, all values match, and the current is not marked
         }
-        return null;
-        // if (current.value == value && !current.isMarked)
-        // return current;
-        // else
-        // return null;
+        return null; // other wise return null
 
     }
 
-    // public static Bucket deleteTree(Bucket root, String key, int value) {
-    // int saveVal; // var to save a value
-    // Bucket newDelNode; // intermediate node that helps in deleting
-    // Bucket delNode = searchTree(root, key, value); // search and check if the
-    // node we want to delete it is in the
-    // // tree
-    // Bucket parent = parent(root, delNode); // find the parent node of the deleted
-    // node
-    // if (isLeaf(delNode)) { // if the deleted node is leaf
-    // if (parent == null) // if it has no parent, therefore it does not exits
-    // return null;
-    // if (value < parent.value) // if it has a parent, and the value of it is less
-    // than the parent's value
-    // parent.left = null; // delete it by pointing the parent's left branch to null
-    // else // if the value is greater than the parent's value.
-    // parent.right = null; // point the right branch to null
-    // return root;
-    // }
-    // if (hasOnlyLeftChild(delNode)) {
-    // if (parent == null)
-    // return delNode.left;
-    // if (value < parent.value)
-    // parent.left = parent.left.left;
-    // else
-    // parent.right = parent.right.left;
-    // return root;
-    // }
-    // if (hasOnlyRightChild(delNode)) {
-    // if (parent == null)
-    // return delNode.right;
-    // if (value < parent.value)
-    // parent.left = parent.left.right;
-    // else
-    // parent.right = parent.right.right;
-    // return root;
-    // }
-    // newDelNode = minVal(delNode.right);
-    // saveVal = newDelNode.value;
-    // deleteTree(root, key, saveVal);
-    // delNode.value = saveVal;
-    // return root;
-    // }
-
+    // complicated!! try to read through it and ask me (Ahmed) if you have any
+    // questions
     public static Bucket deleteTree(Bucket root, String key, int value) {
         Bucket current = root;
         Bucket parent = parent(root, current);
@@ -184,7 +142,7 @@ public class Bucket {
                 }
 
                 if (current.key.equals(key) && current.value == value) {
-                    // first logically delete
+                    // delete current logically
                     current.isMarked.set(true);
 
                     int saveVal; // var to save a value
@@ -197,7 +155,7 @@ public class Bucket {
                             parent.left = null; // delete it by pointing the parent's left branch to null
                         else // if the value is greater than the parent's value.
                             parent.right = null; // point the right branch to null
-                        root.size.getAndDecrement();
+                        root.size.getAndDecrement(); // decrement the root size by one after each deletion
                         return root;
                     }
                     if (hasOnlyLeftChild(current)) {
@@ -232,7 +190,8 @@ public class Bucket {
                 current.unlock();
             }
         } finally {
-            parent.unlock();
+            if (parent != null)
+                parent.unlock();
         }
     }
 
@@ -278,13 +237,13 @@ public class Bucket {
         return (node.left == null && node.right != null);
     }
 
-    // printing preorder for Testing
+    // printing preorder-inorder-postorder for Testing - uncomment only one print statement
     public static void printTree(Bucket root) {
         if (root != null) {
             // if (!root.isMarked.get())
             // System.out.printf("(key:%s , value: %d)",root.key, root.value);
             printTree(root.left);
-            if (!root.isMarked.get())
+            if (!root.isMarked.get()) // added this condition, so it will not print the logically deleted nodes
                 System.out.printf("(key:%s , value: %d)", root.key, root.value);
             printTree(root.right);
             // if (!root.isMarked.get())
@@ -294,9 +253,10 @@ public class Bucket {
 
     // counts how many nodes are there in a tree
     public static int count(Bucket root) {
-        if (root == null)
+        if (root == null) 
             return 0;
-        return Integer.parseInt(root.size.toString());
+        return Integer.parseInt(root.size.toString()); // returns the size of the root only
+        // easy to access the root to know the count than to traverse the whole tree
     }
 
     public void lock() {
