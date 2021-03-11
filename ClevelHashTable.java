@@ -44,6 +44,8 @@ public class ClevelHashTable implements Runnable {
         } else {
             // if it fails to insert in any level
             // it will resize itself and try to insert again
+            // crete a new thread 
+            // resize 
             this.resize();
             this.insert(key, value);
         }
@@ -92,6 +94,7 @@ public class ClevelHashTable implements Runnable {
     }
 
     public void resize() {
+        // create new thread for the new class
         // indicate the bucket is resizing
         isResizing = true;
         // get the new size for the bottom level
@@ -156,7 +159,8 @@ public class ClevelHashTable implements Runnable {
         }
 
     }
-
+    
+    // I don't think we need this
     public int update(String key, Integer value) {
         // Bucket deleteTree(Bucket root, String key, int value)
         // Bucket test = Bucket.deleteTree(this.bottomLevel[], key, value);

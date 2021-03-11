@@ -1,5 +1,8 @@
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
+
+
 public class Main {
     // the main method is just for testing
     public static void main(String[] args) {
@@ -29,7 +32,7 @@ public class Main {
             System.out.println("not found"); 
         else 
             System.out.println(result.key + " "  + result.value);
-
+        
         
         // hashtable.insert("hello", 1);
         // hashtable.insert("hello3", 2);
@@ -63,6 +66,6 @@ public class Main {
     
 
         // System.out.println(hashtable.search("hello", 4));
-        
+        BlockingQueue q = new BlockingQueue<E>();
     }
 }
