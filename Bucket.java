@@ -39,7 +39,7 @@ public class Bucket {
             return temp; // return the new bucket to be the root
         }
 
-        if (root.value == value) { // if the root's value equal the inserted value
+        if (root.value == value && root.key.equals(key)) { // if the root's value equal the inserted value
             return root; // return the root and do nothing (do not allow dublicates).
         }
         Bucket current = root; // for traversing the tree
@@ -51,7 +51,7 @@ public class Bucket {
                 current = current.right;
             else if (current.right == null)
                 current = current.left;
-            if (current.value == value)
+            if (current.value == value && current.key.equals(key))
                 return root; // if the value exsits, return the root. Don't proceed further
 
         }
