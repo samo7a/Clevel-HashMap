@@ -1,4 +1,3 @@
-import java.nio.charset.Charset;
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -206,11 +205,7 @@ public class ClevelHashTable implements Runnable {
         }
     }
 
-    // public int assignOperation() {
-    // Random rndm = new Random();
-    // return rndm.nextInt(100) + 8;
-    // }
-    private static String generateRandom(String aToZ) {
+    public static String generateRandom(String aToZ) {
         Random rand = new Random();
         StringBuilder res = new StringBuilder();
         for (int i = 0; i < 5; i++) {
@@ -222,14 +217,28 @@ public class ClevelHashTable implements Runnable {
 
     @Override
     public void run() {
-        // System.out.println("hello I am a thread!");
+        // not tested
+        // test it after finishing the implementation of the concurrent hash map
+        int noOfAttempts = 4; // 
+        Random random = new Random();
+        int valueBound = 100;
+        for(int i = 0; i < noOfAttempts; i++){
+			int operation = random.nextInt(3);
+			int value = random.nextInt(valueBound);
+            String key = generateRandom("ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz");
+			switch (operation) {
+			case 0:	
+				this.insert(key, value);
+				break;
 
-        for (int i = 0; i < 10; i++) {
-            String aToZ = "ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz"; // 36 letter.
-            String generatedString = generateRandom(aToZ);
-            this.insert(generatedString, i);
-        }
-        // int i = assignOperation();
-        // this.insert(Integer.valueOf(i).toString(), assignOperation());
+			case 1:
+				this.delete(key, value);
+				break;
+
+			default: 
+				this.search(key, value);
+				break;
+			}
+		}
     }
 }
