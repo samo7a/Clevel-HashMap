@@ -1,7 +1,7 @@
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ClevelHashTable implements Runnable {
+public class ClevelHashTable {//implements Runnable {
     // the hash table will have 2 levels, and an isResizing flag
     boolean isResizing;
     public Bucket[] topLevel; // array of buckets
@@ -25,7 +25,7 @@ public class ClevelHashTable implements Runnable {
         }
     }
 
-    public void insert(String key, Integer value) {
+    public boolean insert(String key, Integer value) {
         // calls worker thread
         //lock.lock();
         // hash here
@@ -35,19 +35,23 @@ public class ClevelHashTable implements Runnable {
         // doing the same
         if (Bucket.count(this.topLevel[keys[0]]) < 8) {
             this.topLevel[keys[0]] = Bucket.insertTree(key, value, this.topLevel[keys[0]]);
+            return true;
         } else if (Bucket.count(this.topLevel[keys[1]]) < 8) {
             this.topLevel[keys[1]] = Bucket.insertTree(key, value, this.topLevel[keys[1]]);
+            return true;
         } else if (Bucket.count(this.bottomLevel[keys[2]]) < 8) {
             this.bottomLevel[keys[2]] = Bucket.insertTree(key, value, this.bottomLevel[keys[2]]);
+            return true;
         } else if (Bucket.count(this.bottomLevel[keys[3]]) < 8) {
             this.bottomLevel[keys[3]] = Bucket.insertTree(key, value, this.bottomLevel[keys[3]]);
+            return true;
         } else {
             // if it fails to insert in any level
             // it will resize itself and try to insert again
-            // crete a new thread 
-            // resize 
-            this.resize();
-            this.insert(key, value);
+            this.isResizing = true;
+            return false;
+            //this.resize();
+            //this.insert(key, value);
         }
         //lock.unlock();
     }
@@ -128,7 +132,7 @@ public class ClevelHashTable implements Runnable {
         // hashing the new index for the key in the root
         int[] keys = this.hash(root.key, root.value);
         // insert node value into new position in the array
-        insertRehash(root.key, root.value, newLevel);
+        //insertRehash(root.key, root.value, newLevel);
         if (Bucket.count(root) < 8)
             newLevel[keys[0]] = Bucket.insertTree(root.key, root.value, newLevel[keys[0]]);
         else
@@ -219,30 +223,30 @@ public class ClevelHashTable implements Runnable {
         return res.toString();
     }
 
-    @Override
-    public void run() {
+   // @Override
+    //public void run() {
         // not tested
         // test it after finishing the implementation of the concurrent hash map
-        int noOfAttempts = 4; // 
-        Random random = new Random();
-        int valueBound = 100;
-        for(int i = 0; i < noOfAttempts; i++){
-			int operation = random.nextInt(3);
-			int value = random.nextInt(valueBound);
-            String key = generateRandom("ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz");
-			switch (operation) {
-			case 0:	
-				this.insert(key, value);
-				break;
+        // int noOfAttempts = 4; // 
+        // Random random = new Random();
+        // int valueBound = 100;
+        // for(int i = 0; i < noOfAttempts; i++){
+		// 	int operation = random.nextInt(3);
+		// 	int value = random.nextInt(valueBound);
+        //     String key = generateRandom("ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz");
+		// 	switch (operation) {
+		// 	case 0:	
+		// 		this.insert(key, value);
+		// 		break;
 
-			case 1:
-				this.delete(key, value);
-				break;
+		// 	case 1:
+		// 		this.delete(key, value);
+		// 		break;
 
-			default: 
-				this.search(key, value);
-				break;
-			}
-		}
-    }
+		// 	default: 
+		// 		this.search(key, value);
+		// 		break;
+		// 	}
+		// }
+    //}
 }

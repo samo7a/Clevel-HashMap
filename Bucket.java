@@ -115,6 +115,9 @@ public class Bucket {
     // questions
     public static Bucket deleteTree(Bucket root, String key, int value) {
         Bucket current = root;
+        // return null if the root is empty/null
+        if(current == null)
+            return null;
         Bucket parent = parent(root, current);
 
         while (current.left != null || current.right != null) {
