@@ -1,65 +1,84 @@
-import java.util.Random;
+
+/**
+ * @author Ahmed Elshetany
+ * @author Ankita Tripathi
+ * @author Jacob Bostwick
+ * @author Micah Renfrow
+ * @author Quynh Nguyen
+ * @version 1.0
+ */
+
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ClevelHashTable {//implements Runnable {
-    // the hash table will have 2 levels, and an isResizing flag
-    boolean isResizing;
-    public Bucket[] topLevel; // array of buckets
+/**
+ * 
+ */
+public class ClevelHashTable implements Runnable {
+    AtomicBoolean isResizing;
+    public Bucket[] topLevel;
     public Bucket[] bottomLevel;
-    int bottomSize; // size of the bottom level
-    int topSize; // size of the top level
-    ReentrantLock lock = new ReentrantLock(); // lock, probably will be deleted soon.
-    // constructor
+    public Bucket[] newLevel;
+    int bottomSize;
+    int topSize;
+    int newLevelSize;
+    ReentrantLock lock = new ReentrantLock();
 
+    /**
+     * 
+     */
     public ClevelHashTable() {
-        bottomSize = 4; // initial size is 4, will be doubled in each resizing
-        topSize = bottomSize * 2; // initial size is 8.
-        isResizing = false; // the hash table is not resizing, we are just initializing it
-        topLevel = new Bucket[topSize]; // the top level array is twice the size of the bottom one
+        bottomSize = 4;
+        topSize = bottomSize * 2;
+        newLevelSize = topSize * 2;
+        isResizing = new AtomicBoolean(false);
+        topLevel = new Bucket[topSize];
         bottomLevel = new Bucket[bottomSize];
-        // store the 4 generated hash keys of the value
-        for (int i = 0; i < bottomSize; i++) { // initializing each element in the array
-            topLevel[i] = null;
-            topLevel[i + bottomSize] = null;
-            bottomLevel[i] = null;
-        }
+        newLevel = new Bucket[newLevelSize];
     }
 
+    /**
+     * 
+     * @param key
+     * @param value
+     * @return
+     */
     public boolean insert(String key, Integer value) {
-        // calls worker thread
-        //lock.lock();
-        // hash here
-        int[] keys = this.hash(key, value); // update the keys array
-
-        // tries to insert in the 2 top locations first, then jump to the bottom level
-        // doing the same
-        if (Bucket.count(this.topLevel[keys[0]]) < 8) {
-            this.topLevel[keys[0]] = Bucket.insertTree(key, value, this.topLevel[keys[0]]);
-            return true;
-        } else if (Bucket.count(this.topLevel[keys[1]]) < 8) {
-            this.topLevel[keys[1]] = Bucket.insertTree(key, value, this.topLevel[keys[1]]);
-            return true;
-        } else if (Bucket.count(this.bottomLevel[keys[2]]) < 8) {
-            this.bottomLevel[keys[2]] = Bucket.insertTree(key, value, this.bottomLevel[keys[2]]);
-            return true;
-        } else if (Bucket.count(this.bottomLevel[keys[3]]) < 8) {
-            this.bottomLevel[keys[3]] = Bucket.insertTree(key, value, this.bottomLevel[keys[3]]);
-            return true;
+        int[] keys = this.hash(key, value);
+        if (isResizing.get()) {
+            return insertRehash(key, value);
         } else {
-            // if it fails to insert in any level
-            // it will resize itself and try to insert again
-            this.isResizing = true;
-            return false;
-            //this.resize();
-            //this.insert(key, value);
+            if (Bucket.count(this.topLevel[keys[0]]) < 8) {
+                this.topLevel[keys[0]] = Bucket.insertTree(key, value, this.topLevel[keys[0]]);
+                return true;
+            } else if (Bucket.count(this.topLevel[keys[1]]) < 8) {
+                this.topLevel[keys[1]] = Bucket.insertTree(key, value, this.topLevel[keys[1]]);
+                return true;
+            } else if (Bucket.count(this.bottomLevel[keys[2]]) < 8) {
+                this.bottomLevel[keys[2]] = Bucket.insertTree(key, value, this.bottomLevel[keys[2]]);
+                return true;
+            } else if (Bucket.count(this.bottomLevel[keys[3]]) < 8) {
+                this.bottomLevel[keys[3]] = Bucket.insertTree(key, value, this.bottomLevel[keys[3]]);
+                return true;
+            } else {
+                this.isResizing.set(true);
+                Thread resize = new Thread(this);
+                this.bottomSize *= 2;
+                this.topSize *= 2;
+                resize.start();
+                return this.insert(key, value);
+            }
         }
-        //lock.unlock();
     }
 
-    // returns the loction of the value
+    /**
+     * 
+     * @param key
+     * @param value
+     * @return
+     */
     public int search(String key, Integer value) {
-        int[] keys = this.hash(key, value); // another hash
-        // search bottom level (bottom up search)
+        int[] keys = this.hash(key, value);
         if (Bucket.searchTree(this.bottomLevel[keys[2]], key, value) != null)
             return keys[2];
         if (Bucket.searchTree(this.bottomLevel[keys[3]], key, value) != null)
@@ -68,17 +87,20 @@ public class ClevelHashTable {//implements Runnable {
             return keys[0];
         if (Bucket.searchTree(this.topLevel[keys[1]], key, value) != null)
             return keys[1];
-        return -1; // returns -1 if not found
+        return -1;
     }
 
+    /**
+     * 
+     * @param key
+     * @param value
+     */
     public void delete(String key, Integer value) {
-        int[] keys = this.hash(key, value); // another hash
-        int index = this.search(key, value); // search the index
-        boolean topOrBottom = true; // true for topLevel, false for bottomLevel
-        if (index == -1) // not found
+        int[] keys = this.hash(key, value);
+        int index = this.search(key, value);
+        boolean topOrBottom = true;
+        if (index == -1)
             return;
-
-        // trying to figure out if it is in the top or bottom level
         for (int i = 0; i < keys.length; i++) {
             if (keys[i] == index) {
                 if (i <= 1)
@@ -88,7 +110,7 @@ public class ClevelHashTable {//implements Runnable {
                 break;
             }
         }
-        if (topOrBottom) { // if true, find in top level and delete it
+        if (topOrBottom) {
             this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key, value);
             return;
         }
@@ -97,87 +119,57 @@ public class ClevelHashTable {//implements Runnable {
 
     }
 
+    /**
+     * 
+     */
     public void resize() {
-        // create new thread for the new class
-        // indicate the bucket is resizing
-        isResizing = true;
-        // get the new size for the bottom level
-        // I assume the size would be doubled based on the discord chat
-        bottomSize *= 2;
-        topSize *= 2;
-        Bucket[] newLevel = new Bucket[topSize];
-        // go thru the current bottom level to rehash every element
         for (Bucket root : bottomLevel) {
-            // rehash every node in the tree
-            reHashNode(root, newLevel);
+            reHashNode(root, this.newLevel);
         }
-
-        // bottomLevel = new Bucket[size];
-        // assign the current top level as bottom
-        this.bottomLevel = topLevel;
-        // just googled it, doing this will wipe off every current element in the old
-        // array and
-        // create a brand new empty array with the size
-        // topLevel = new Bucket[size * 2];
-
-        // assign new Level as the top
-        this.topLevel = newLevel;
-        // finish resizing
-        isResizing = false;
+        this.bottomLevel = this.topLevel;
+        this.topLevel = this.newLevel;
+        this.newLevel = new Bucket[topSize * 2];
+        this.isResizing.set(false);
     }
 
+    /**
+     * 
+     * @param root
+     * @param newLevel
+     */
     public void reHashNode(Bucket root, Bucket[] newLevel) {
         if (root == null)
             return;
-        // hashing the new index for the key in the root
-        int[] keys = this.hash(root.key, root.value);
-        // insert node value into new position in the array
-        //insertRehash(root.key, root.value, newLevel);
-        if (Bucket.count(root) < 8)
-            newLevel[keys[0]] = Bucket.insertTree(root.key, root.value, newLevel[keys[0]]);
-        else
-            newLevel[keys[1]] = Bucket.insertTree(root.key, root.value, newLevel[keys[1]]);
-        // traverse left & right
+        insertRehash(root.key, root.value);
         reHashNode(root.left, newLevel);
         reHashNode(root.right, newLevel);
-
     }
 
-    public void insertRehash(String key, Integer value, Bucket[] newLevel) {
-
-        // get the key from hashing, assign 0 for now
-        // insert to bottom level
+    /**
+     * 
+     * @param key
+     * @param value
+     * @return
+     */
+    public boolean insertRehash(String key, Integer value) {
         int[] keys = this.hash(key, value);
         if (Bucket.count(newLevel[keys[0]]) < 8) {
             newLevel[keys[0]] = Bucket.insertTree(key, value, newLevel[keys[0]]);
+            return true;
         } else if (Bucket.count(newLevel[keys[1]]) < 8) {
             newLevel[keys[1]] = Bucket.insertTree(key, value, newLevel[keys[1]]);
-        } else if (Bucket.count(this.topLevel[keys[2]]) < 8) {
-            this.topLevel[keys[2]] = Bucket.insertTree(key, value, this.topLevel[keys[2]]);
-        } else if (Bucket.count(this.topLevel[keys[3]]) < 8) {
-            this.topLevel[keys[3]] = Bucket.insertTree(key, value, this.topLevel[keys[3]]);
-        } else {
-            // resize and try to insert again
-            this.resize();
-            this.insert(key, value);
-        }
-
-    }
-    
-    // I don't think we need this
-    public int update(String key, Integer value) {
-        // Bucket deleteTree(Bucket root, String key, int value)
-        // Bucket test = Bucket.deleteTree(this.bottomLevel[], key, value);
-        // if (test == null) {
-        // Bucket.deleteTree(this.bottomLevel[0], key, value);
-        // }
-        this.delete(key, value);
-        this.insert(key, value);
-        return value;
+            return true;
+        } else
+            return false;
     }
 
+    /**
+     * 
+     * @param key
+     * @param value
+     * @return
+     */
     public int[] hash(String key, Integer value) {
-        // so that we can get a unique hashkey and avoid duplicates
         int[] keys = new int[4];
         int num = key.hashCode() + value.hashCode();
         if (num < 0)
@@ -197,56 +189,27 @@ public class ClevelHashTable {//implements Runnable {
         return keys;
     }
 
+    /**
+     * 
+     */
     public void printTable() {
         System.out.println("Top Array:");
         for (int i = 0; i < topSize; i++) {
             System.out.print("    Tree no. " + i + ": {");
-            Bucket.printTree(this.topLevel[i]);
+            Bucket.inOrderPrint(this.topLevel[i]);
             System.out.println("}");
         }
         System.out.println();
         System.out.println("Bottom Array:");
         for (int i = 0; i < bottomSize; i++) {
             System.out.print("    Tree no. " + i + ": {");
-            Bucket.printTree(this.bottomLevel[i]);
+            Bucket.inOrderPrint(this.bottomLevel[i]);
             System.out.println("}");
         }
     }
 
-    public static String generateRandom(String aToZ) {
-        Random rand = new Random();
-        StringBuilder res = new StringBuilder();
-        for (int i = 0; i < 5; i++) {
-            int randIndex = rand.nextInt(aToZ.length());
-            res.append(aToZ.charAt(randIndex));
-        }
-        return res.toString();
+    @Override
+    public void run() {
+        this.resize();
     }
-
-   // @Override
-    //public void run() {
-        // not tested
-        // test it after finishing the implementation of the concurrent hash map
-        // int noOfAttempts = 4; // 
-        // Random random = new Random();
-        // int valueBound = 100;
-        // for(int i = 0; i < noOfAttempts; i++){
-		// 	int operation = random.nextInt(3);
-		// 	int value = random.nextInt(valueBound);
-        //     String key = generateRandom("ABCDEFGHIJKLMNOPQRSTVWXYabcdefghijklmnopqrstuvwxyz");
-		// 	switch (operation) {
-		// 	case 0:	
-		// 		this.insert(key, value);
-		// 		break;
-
-		// 	case 1:
-		// 		this.delete(key, value);
-		// 		break;
-
-		// 	default: 
-		// 		this.search(key, value);
-		// 		break;
-		// 	}
-		// }
-    //}
 }
