@@ -2,16 +2,17 @@ public class Main {
     // the main method is just for testing
     public static void main(String[] args) {
 
-        ClevelHashTable hashTable = new ClevelHashTable();
-
-        hashTable.printTable();
-
-        for (int i = 0; i < 96; i++) {
-            hashTable.insert("h", i);
+        Threads hashtable = new Threads();
+        
+        for (int i = 0; i < 300; i++) {
+            Thread insert = new Thread (hashtable);
+            insert.start();
         }
-        hashTable.insert("UNIQUE1", 999999999);
-        hashTable.insert("UNIQUE2", 111111111);
-        hashTable.printTable();
+        
+        hashtable.hashtable.printTable();
+
+        
+        
 
     }
 }

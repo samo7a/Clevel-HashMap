@@ -12,8 +12,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 
+ * Unique implementation of  a Clevel hash table
+ * The hash table has 2 levels, when doing the basic operations (search, delete and insert) the hash function 
+ * will provide us with 4 locations to insert in. If none of these locations are empty, a resize opreation will be
+ * performed and the thread will try to re-insert agian.
+ * This data structure is thread safe; multiple threads could perform their basic crud operations at the same time.
+ *
  */
+
 public class ClevelHashTable implements Runnable {
     AtomicBoolean isResizing;
     public Bucket[] topLevel;
@@ -25,7 +31,7 @@ public class ClevelHashTable implements Runnable {
     ReentrantLock lock = new ReentrantLock();
 
     /**
-     * 
+     * Constructor to create an empty hash table
      */
     public ClevelHashTable() {
         bottomSize = 4;
@@ -38,13 +44,13 @@ public class ClevelHashTable implements Runnable {
     }
 
     /**
-     * 
-     * @param key
-     * @param value
-     * @return
+     * Inserting an item to the hashtable
+     * @param key The key of the item 
+     * @param value The value you want to insert
+     * @return false if the insert operation failed or true if the insert was successful
      */
     public boolean insert(String key, Integer value) {
-        int[] keys = this.hash(key, value);
+        int[] keys = this.hash(key);
         if (isResizing.get()) {
             return insertRehash(key, value);
         } else {
@@ -65,6 +71,7 @@ public class ClevelHashTable implements Runnable {
                 Thread resize = new Thread(this);
                 this.bottomSize *= 2;
                 this.topSize *= 2;
+                this.newLevelSize *= 2;
                 resize.start();
                 return this.insert(key, value);
             }
@@ -72,32 +79,55 @@ public class ClevelHashTable implements Runnable {
     }
 
     /**
-     * 
-     * @param key
-     * @param value
-     * @return
+     * Search in the hashtable if that key-value pair exist
+     * @param key The key of the item
+     * @param value The value associated with it
+     * @return the index of that key-value pair or -1 if not found
      */
-    public int search(String key, Integer value) {
-        int[] keys = this.hash(key, value);
-        if (Bucket.searchTree(this.bottomLevel[keys[2]], key, value) != null)
-            return keys[2];
-        if (Bucket.searchTree(this.bottomLevel[keys[3]], key, value) != null)
-            return keys[3];
-        if (Bucket.searchTree(this.topLevel[keys[0]], key, value) != null)
-            return keys[0];
-        if (Bucket.searchTree(this.topLevel[keys[1]], key, value) != null)
-            return keys[1];
-        return -1;
+    public int search(String key) {
+        if (this.isResizing.get()){
+            int[] keys = this.hash(key);
+            Bucket current = Bucket.searchTree(this.topLevel[keys[2]], key) ;
+            if (current != null)
+                return current.value;
+            current = Bucket.searchTree(this.topLevel[keys[3]], key);
+            if (current != null)
+                return current.value;
+            while (this.isResizing.get());
+            keys = this.hash(key);
+            current = Bucket.searchTree(this.topLevel[keys[2]], key) ;
+            if (current != null)
+                return current.value;
+            current = Bucket.searchTree(this.topLevel[keys[3]], key);
+            if (current != null)
+                return current.value;
+            return -1;
+        } else {
+            int[] keys = this.hash(key);
+            Bucket current = Bucket.searchTree(this.bottomLevel[keys[2]], key);
+            if (current != null)
+                return current.value;
+            current = Bucket.searchTree(this.bottomLevel[keys[3]], key);
+            if (current != null)
+                return current.value;
+            current = Bucket.searchTree(this.topLevel[keys[0]], key) ;
+            if (current != null)
+                return current.value;
+            current = Bucket.searchTree(this.topLevel[keys[1]], key);
+            if (current != null)
+                return current.value;
+            return -1;
+        }
     }
 
     /**
-     * 
-     * @param key
-     * @param value
+     * Delete a key-value pair from the hashtable
+     * @param key The key of the item that is to be deleted
+     * @param value The value associated with the key
      */
     public void delete(String key, Integer value) {
-        int[] keys = this.hash(key, value);
-        int index = this.search(key, value);
+        int[] keys = this.hash(key);
+        int index = this.search(key);
         boolean topOrBottom = true;
         if (index == -1)
             return;
@@ -111,33 +141,27 @@ public class ClevelHashTable implements Runnable {
             }
         }
         if (topOrBottom) {
-            this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key, value);
+            this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key);
             return;
         }
-        this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key, value);
+        this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key);
         return;
 
     }
 
-    /**
-     * 
-     */
-    public void resize() {
+    // resize the hashtable
+    private void resize() {
         for (Bucket root : bottomLevel) {
             reHashNode(root, this.newLevel);
         }
         this.bottomLevel = this.topLevel;
         this.topLevel = this.newLevel;
-        this.newLevel = new Bucket[topSize * 2];
+        this.newLevel = new Bucket[newLevelSize];
         this.isResizing.set(false);
     }
 
-    /**
-     * 
-     * @param root
-     * @param newLevel
-     */
-    public void reHashNode(Bucket root, Bucket[] newLevel) {
+    // rehash all the nodes in that root to the new level
+    private void reHashNode(Bucket root, Bucket[] newLevel) {
         if (root == null)
             return;
         insertRehash(root.key, root.value);
@@ -145,14 +169,9 @@ public class ClevelHashTable implements Runnable {
         reHashNode(root.right, newLevel);
     }
 
-    /**
-     * 
-     * @param key
-     * @param value
-     * @return
-     */
-    public boolean insertRehash(String key, Integer value) {
-        int[] keys = this.hash(key, value);
+   // Rehash and insert the key-value pair into the new level while the hashtable is resizing
+    private boolean insertRehash(String key, Integer value) {
+        int[] keys = this.hash(key);
         if (Bucket.count(newLevel[keys[0]]) < 8) {
             newLevel[keys[0]] = Bucket.insertTree(key, value, newLevel[keys[0]]);
             return true;
@@ -163,15 +182,10 @@ public class ClevelHashTable implements Runnable {
             return false;
     }
 
-    /**
-     * 
-     * @param key
-     * @param value
-     * @return
-     */
-    public int[] hash(String key, Integer value) {
+    // Hashing function
+    private int[] hash(String key) {
         int[] keys = new int[4];
-        int num = key.hashCode() + value.hashCode();
+        int num = key.hashCode();// + value.hashCode();
         if (num < 0)
             num *= -1;
 
@@ -190,7 +204,7 @@ public class ClevelHashTable implements Runnable {
     }
 
     /**
-     * 
+     * Prints the hash table
      */
     public void printTable() {
         System.out.println("Top Array:");
@@ -206,6 +220,7 @@ public class ClevelHashTable implements Runnable {
             Bucket.inOrderPrint(this.bottomLevel[i]);
             System.out.println("}");
         }
+        System.out.println();
     }
 
     @Override

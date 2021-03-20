@@ -5,6 +5,7 @@
  * @author Jacob Bostwick
  * @author Micah Renfrow
  * @author Quynh Nguyen
+ * @version 1.0
  */
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 
 /**
- * 
+ * Represents a location in the hashtable in the form of BST
  */
 public class Bucket {
     public String key;
@@ -21,13 +22,14 @@ public class Bucket {
     volatile Bucket right;
     public AtomicBoolean isMarked;
     private Lock lock;
-    static final int LIMIT = 8;
     private AtomicInteger size;
+    static final int LIMIT = 8;
 
     /**
+     * Constructs an empty node for the BST
      * 
-     * @param key
-     * @param value
+     * @param key   The key associated with inserted value
+     * @param value Integer Value to be inserted
      */
     public Bucket(String key, int value) {
         this.size = new AtomicInteger(0);
@@ -40,11 +42,12 @@ public class Bucket {
     }
 
     /**
+     * Insert a new node into the current tree
      * 
-     * @param key
-     * @param value
-     * @param root
-     * @return
+     * @param key   The key associated with inserted value
+     * @param value Integer Value to be inserted
+     * @param root  The root of the tree to insert in
+     * @return The root Bucket of the same tree
      */
     public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value);
@@ -52,97 +55,99 @@ public class Bucket {
             temp.size.getAndIncrement();
             return temp;
         }
-        if (root.value == value && root.key.equals(key)) {
+        if (root.key.equals(key)) {
             return root;
         }
         Bucket current = root;
         Bucket parent = parent(root, current);
-        while (current.left != null || current.right != null) {
+        while (current != null) {
             parent = current;
-            if (current.left == null)
-                current = current.right;
-            else if (current.right == null)
+            if (key.compareTo(current.key) < 0)
                 current = current.left;
-            if (current.value == value && current.key.equals(key))
+            else if (key.compareTo(current.key) > 0)
+                current = current.right;
+            else if (current.key.equals(key))
                 return root;
         }
-
-        if (parent != null)
-            parent.lock();
+        Bucket grandParent = parent(root, parent);
+        if (grandParent != null)
+            grandParent.lock();
         try {
-            current.lock();
+            parent.lock();
             try {
-                if (!validate(parent, current)) {
+                if (!validate(grandParent, parent)) {
                     return root;
                 }
-                if (value > current.value) {
-                    current.right = temp;
+                if (key.compareTo(parent.key) > 0) {
+                    parent.right = temp;
                     root.size.getAndIncrement();
                 } else {
-                    current.left = temp;
+                    parent.left = temp;
                     root.size.getAndIncrement();
                 }
                 return root;
             } finally {
-                current.unlock();
+                parent.unlock();
             }
         } finally {
-            if (parent != null)
-                parent.unlock();
+            if (grandParent != null)
+                grandParent.unlock();
         }
-
     }
 
     /**
+     * Search the tree for the given key
      * 
-     * @param root
-     * @param key
-     * @param value
-     * @return
+     * @param key   The key needed to be search
+     * @param root  The root of the tree
+     * @return Null if not found or the bucket with the given key
      */
-    public static Bucket searchTree(Bucket root, String key, int value) {
+    public static Bucket searchTree(Bucket root, String key) {
         if (root == null)
             return null;
-        if (root.value == value && root.key.equals(key))
+        if (root.key.equals(key))
             return root;
         Bucket current = root;
         Bucket parent = parent(root, current);
-        while (current.left != null || current.right != null) {
+        while (current != null) {
             parent = current;
-            if (current.left == null)
-                current = current.right;
-            else if (current.right == null)
+            if (key.compareTo(current.key) < 0)
                 current = current.left;
-            if (current.key.equals(key) && current.value == value && !current.isMarked.get())
-                return current;
+            else if (key.compareTo(current.key) > 0)
+                current = current.right;
+            if (current != null ){
+                if (current.key.equals(key) && !current.isMarked.get())
+                    return current;
+            }
         }
         return null;
     }
 
     /**
-     * 
-     * @param root
-     * @param key
-     * @param value
-     * @return
+     * Delete a given key-value pair from the tree
+     * @param root The root of the tree
+     * @param key The key that is to be deleted
+     * @return The root of the tree from which the key-value pair is deleted
      */
-    public static Bucket deleteTree(Bucket root, String key, int value) {
+    public static Bucket deleteTree(Bucket root, String key) {
         Bucket current = root;
         if (current == null)
             return null;
         Bucket parent = parent(root, current);
-        while (current.left != null || current.right != null) {
+        while (current != null) {
             parent = current;
-            if (current.left == null)
-                current = current.right;
-            else if (current.right == null)
+            if (key.compareTo(current.key) < 0)
                 current = current.left;
-            if (current.key.equals(key) && current.value == value)
+            else if (key.compareTo(current.key) > 0)
+                current = current.right; 
+            if (current != null && current.key.equals(key) && !current.isMarked.get())
                 break;
         }
 
+        current = parent;
+        parent = parent (root, parent);
         if (parent == null) {
-            if (current.key.equals(key) && current.value == value)
+            if (current.key.equals(key))
                 return null;
         } else
             parent.lock();
@@ -154,16 +159,15 @@ public class Bucket {
                 if (!validate(parent, current)) {
                     return root;
                 }
-
-                if (current.key.equals(key) && current.value == value) {
+                if (current.key.equals(key)) {
                     current.isMarked.set(true);
 
-                    int saveVal;
+                    String savKey;
                     Bucket newDelNode;
                     if (isLeaf(current)) {
                         if (parent == null)
                             return null;
-                        if (value < parent.value)
+                        if (key.compareTo(current.key) < 0)
                             parent.left = null;
                         else
                             parent.right = null;
@@ -173,7 +177,7 @@ public class Bucket {
                     if (hasOnlyLeftChild(current)) {
                         if (parent == null)
                             return current.left;
-                        if (value < parent.value)
+                        if (key.compareTo(current.key) < 0)
                             parent.left = parent.left.left;
                         else
                             parent.right = parent.right.left;
@@ -183,7 +187,7 @@ public class Bucket {
                     if (hasOnlyRightChild(current)) {
                         if (parent == null)
                             return current.right;
-                        if (value < parent.value)
+                        if (key.compareTo(current.key) < 0)
                             parent.left = parent.left.right;
                         else
                             parent.right = parent.right.right;
@@ -191,9 +195,9 @@ public class Bucket {
                         return root;
                     }
                     newDelNode = minVal(current.right);
-                    saveVal = newDelNode.value;
-                    deleteTree(root, key, saveVal);
-                    current.value = saveVal;
+                    savKey = newDelNode.key;
+                    deleteTree(root, key);
+                    current.key = savKey;
                     root.size.getAndDecrement();
                     return root;
                 }
@@ -208,10 +212,10 @@ public class Bucket {
     }
 
     /**
-     * 
-     * @param root
-     * @param node
-     * @return
+     * Find the parent of a node
+     * @param root The root of the tree
+     * @param node The current node
+     * @return The parent of a current node
      */
     public static Bucket parent(Bucket root, Bucket node) {
         if (root == null || node == null)
@@ -225,57 +229,57 @@ public class Bucket {
         else
             return null;
     }
-
+    // Helper function to find the minimum value in the tree
     private static Bucket minVal(Bucket root) {
         if (root.left == null)
             return root;
         else
             return minVal(root.left);
     }
-
+    // Helper function to check if the node doens't have any child
     private static boolean isLeaf(Bucket node) {
         if (node == null)
             return true;
         return (node.left == null && node.right == null);
     }
-
+    // Helper function to check if a node only has a left child
     private static boolean hasOnlyLeftChild(Bucket node) {
         return (node.left != null && node.right == null);
     }
-
+    // Helper function to check if the node only has right child
     private static boolean hasOnlyRightChild(Bucket node) {
         return (node.left == null && node.right != null);
     }
 
     /**
-     * 
-     * @param root
+     * Print the tree in pre-order format
+     * @param root The root of the tree
      */
     public static void preOrderPrint(Bucket root) {
         if (root != null) {
             if (!root.isMarked.get())
-                System.out.printf("(key:%s , value: %d)", root.key, root.value);
+                System.out.printf("(%s,%d)", root.key, root.value);
             preOrderPrint(root.left);
             preOrderPrint(root.right);
         }
     }
 
     /**
-     * 
-     * @param root
+     *  Print the Tree in in-order format
+     * @param root The root of the tree
      */
     public static void inOrderPrint(Bucket root) {
         if (root != null) {
             inOrderPrint(root.left);
             if (!root.isMarked.get())
-                System.out.printf("(key:%s , value: %d)", root.key, root.value);
+                System.out.printf("(%s,%d)", root.key, root.value);
             inOrderPrint(root.right);
         }
     }
 
     /**
-     * 
-     * @param root
+     * Print the tree in post-order format
+     * @param root The root of the tree
      */
     public static void postOrderPrint(Bucket root) {
         if (root != null) {
@@ -287,9 +291,9 @@ public class Bucket {
     }
 
     /**
-     * 
-     * @param root
-     * @return
+     * Find the number of elements in a tree
+     * @param root The root of the tree
+     * @return The number of elements in a tree
      */
     public static int count(Bucket root) {
         if (root == null)
@@ -304,7 +308,7 @@ public class Bucket {
     public void unlock() {
         lock.unlock();
     }
-
+    // Validates if the parent points to the current, and both are not marked as logically deleted
     private static boolean validate(Bucket parent, Bucket current) {
         if (parent != null)
             return ((!current.isMarked.get() && !parent.isMarked.get())
