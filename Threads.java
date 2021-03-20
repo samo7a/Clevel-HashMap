@@ -16,18 +16,24 @@ public class Threads implements Runnable{
     @Override
     public void run(){
         Random rndm = new Random();
-        int index = rndm.nextInt(2);
-
+        int index = rndm.nextInt(3);
+        int num = rndm.nextInt(100);
         switch (index) {
             case 0:
-                this.hashtable.insert( String.valueOf(rndm.nextInt(100)) , rndm.nextInt(100));
+                if (this.hashtable.insert( String.valueOf(num) , num))
+                    System.out.println("Inserting " + num + " ........ Done");
+                else
+                    System.out.println("Inserting " + num + " ........ Failed");
+                break;
+            case 1:
+                this.hashtable.delete( String.valueOf(num));
                 break;
         
             default:
-            if (this.hashtable.search(String.valueOf(rndm.nextInt(100))) > 0)
-                System.out.println("found");
-            else 
-                System.out.println("XXXXXXXX");
+                if (this.hashtable.search(String.valueOf(num)) > 0)
+                    System.out.println("Searching for " + num + " ........ found");
+                else 
+                    System.out.println("Searching for " + num + " ........ XXXXXXXXX");
                 break;
         }
     }

@@ -4,10 +4,17 @@ public class Main {
 
         Threads hashtable = new Threads();
         
-        for (int i = 0; i < 300; i++) {
-            Thread insert = new Thread (hashtable);
-            insert.start();
+        for (int i = 0; i < 20; i++) {
+            Thread worker = new Thread (hashtable);
+            worker.start();
+            try {
+                worker.join();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
+
+        
         
         hashtable.hashtable.printTable();
 

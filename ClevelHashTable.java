@@ -120,14 +120,28 @@ public class ClevelHashTable implements Runnable {
         }
     }
 
+    public int getIndex(String key) {
+        int[] keys = this.hash(key); // another hash
+        // search bottom level (bottom up search)
+        if (Bucket.searchTree(this.bottomLevel[keys[2]], key) != null)
+            return keys[2];
+        if (Bucket.searchTree(this.bottomLevel[keys[3]], key) != null)
+            return keys[3];
+        if (Bucket.searchTree(this.topLevel[keys[0]], key) != null)
+            return keys[0];
+        if (Bucket.searchTree(this.topLevel[keys[1]], key) != null)
+            return keys[1];
+        return -1; // returns -1 if not found
+    }
     /**
      * Delete a key-value pair from the hashtable
      * @param key The key of the item that is to be deleted
      * @param value The value associated with the key
      */
-    public void delete(String key, Integer value) {
-        int[] keys = this.hash(key);
-        int index = this.search(key);
+    public void delete(String key) {
+        if (!this.isResizing.get()){
+            int[] keys = this.hash(key);
+        int index = this.getIndex(key);
         boolean topOrBottom = true;
         if (index == -1)
             return;
@@ -146,7 +160,11 @@ public class ClevelHashTable implements Runnable {
         }
         this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key);
         return;
+        }
+        else {
+            // TODO: concurrent delete
 
+        }
     }
 
     // resize the hashtable
