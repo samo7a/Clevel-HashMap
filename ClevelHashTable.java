@@ -10,114 +10,150 @@
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Unique implementation of  a Clevel hash table
- * The hash table has 2 levels, when doing the basic operations (search, delete and insert) the hash function 
- * will provide us with 4 locations to insert in. If none of these locations are empty, a resize opreation will be
- * performed and the thread will try to re-insert agian.
- * This data structure is thread safe; multiple threads could perform their basic crud operations at the same time.
+ * Unique implementation of a Clevel hash table The hash table has 2 levels,
+ * when doing the basic operations (search, delete and insert) the hash function
+ * will provide us with 4 locations to insert in. If none of these locations are
+ * empty, a resize opreation will be performed and the thread will try to
+ * re-insert agian. This data structure is thread safe; multiple threads could
+ * perform their basic crud operations at the same time.
  *
  */
 
 public class ClevelHashTable implements Runnable {
     AtomicBoolean isResizing;
-    public Bucket[] topLevel;
-    public Bucket[] bottomLevel;
-    public Bucket[] newLevel;
-    int bottomSize;
-    int topSize;
-    int newLevelSize;
+    AtomicReference<Bucket[]> newLevel;
+    AtomicReference<Bucket[]> topLevel;
+    AtomicReference<Bucket[]> bottomLevel;
+    AtomicInteger newSize;
+    AtomicInteger topSize;
+    AtomicInteger bottomSize;
     ReentrantLock lock = new ReentrantLock();
 
     /**
      * Constructor to create an empty hash table
      */
     public ClevelHashTable() {
-        bottomSize = 4;
-        topSize = bottomSize * 2;
-        newLevelSize = topSize * 2;
+        newSize = new AtomicInteger(16);
+        topSize = new AtomicInteger(8);
+        bottomSize = new AtomicInteger(4);
         isResizing = new AtomicBoolean(false);
-        topLevel = new Bucket[topSize];
-        bottomLevel = new Bucket[bottomSize];
-        newLevel = new Bucket[newLevelSize];
+        newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
+        topLevel = new AtomicReference<>(new Bucket[topSize.get()]);
+        bottomLevel = new AtomicReference<>(new Bucket[bottomSize.get()]);
     }
 
     /**
      * Inserting an item to the hashtable
-     * @param key The key of the item 
+     * 
+     * @param key   The key of the item
      * @param value The value you want to insert
-     * @return false if the insert operation failed or true if the insert was successful
+     * @return false if the insert operation failed or true if the insert was
+     *         successful
      */
     public boolean insert(String key, Integer value) {
+        // temp vars for sizes
         int[] keys = this.hash(key);
         if (isResizing.get()) {
             return insertRehash(key, value);
         } else {
-            if (Bucket.count(this.topLevel[keys[0]]) < 8) {
-                this.topLevel[keys[0]] = Bucket.insertTree(key, value, this.topLevel[keys[0]]);
+            if (Bucket.count(this.topLevel.get()[keys[2]]) < 8) {
+                this.topLevel.get()[keys[2]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[2]]);
                 return true;
-            } else if (Bucket.count(this.topLevel[keys[1]]) < 8) {
-                this.topLevel[keys[1]] = Bucket.insertTree(key, value, this.topLevel[keys[1]]);
+            } else if (Bucket.count(this.topLevel.get()[keys[3]]) < 8) {
+                this.topLevel.get()[keys[3]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[3]]);
                 return true;
-            } else if (Bucket.count(this.bottomLevel[keys[2]]) < 8) {
-                this.bottomLevel[keys[2]] = Bucket.insertTree(key, value, this.bottomLevel[keys[2]]);
+            } else if (Bucket.count(this.bottomLevel.get()[keys[4]]) < 8) {
+                this.bottomLevel.get()[keys[4]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[4]]);
                 return true;
-            } else if (Bucket.count(this.bottomLevel[keys[3]]) < 8) {
-                this.bottomLevel[keys[3]] = Bucket.insertTree(key, value, this.bottomLevel[keys[3]]);
+            } else if (Bucket.count(this.bottomLevel.get()[keys[5]]) < 8) {
+                this.bottomLevel.get()[keys[5]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[5]]);
                 return true;
             } else {
                 this.isResizing.set(true);
                 Thread resize = new Thread(this);
-                this.bottomSize *= 2;
-                this.topSize *= 2;
-                this.newLevelSize *= 2;
+
                 resize.start();
                 return this.insert(key, value);
             }
         }
     }
+    // Rehash and insert the key-value pair into the new level while the hashtable
+    // is resizing
+    private boolean insertRehash(String key, Integer value) {
+        int[] keys = this.hash(key);
+        if (Bucket.count(newLevel.get()[keys[0]]) < 8) {
+            newLevel.get()[keys[0]] = Bucket.insertTree(key, value, newLevel.get()[keys[0]]);
+            return true;
+        } else if (Bucket.count(newLevel.get()[keys[1]]) < 8) {
+            newLevel.get()[keys[1]] = Bucket.insertTree(key, value, newLevel.get()[keys[1]]);
+            return true;
+        } else
+            return false;
+    }
+        // resize the hashtable
+        private void resize() {
+            System.out.println("***************Resizing****************");
+            for (Bucket root : bottomLevel.get()) {
+                reHashNode(root, this.newLevel.get());
+            }
+            this.newSize.set(this.newSize.get() * 2);
+            this.topSize.set(this.topSize.get() * 2);
+            this.bottomSize.set(this.bottomSize.get() * 2);
+            
+            this.bottomLevel = this.topLevel;
+            this.topLevel = this.newLevel;
+            this.newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
+            this.isResizing.set(false);
+        }
+    
+        // rehash all the nodes in that root to the new level
+        private void reHashNode(Bucket root, Bucket[] newLevel) {
+            if (root == null)
+                return;
+            insertRehash(root.key, root.value);
+            reHashNode(root.left, newLevel);
+            reHashNode(root.right, newLevel);
+        }
 
     /**
      * Search in the hashtable if that key-value pair exist
-     * @param key The key of the item
+     * 
+     * @param key   The key of the item
      * @param value The value associated with it
      * @return the index of that key-value pair or -1 if not found
      */
     public int search(String key) {
-        if (this.isResizing.get()){
-            int[] keys = this.hash(key);
-            Bucket current = Bucket.searchTree(this.topLevel[keys[2]], key) ;
-            if (current != null)
-                return current.value;
-            current = Bucket.searchTree(this.topLevel[keys[3]], key);
-            if (current != null)
-                return current.value;
-            while (this.isResizing.get());
-            keys = this.hash(key);
-            current = Bucket.searchTree(this.topLevel[keys[2]], key) ;
-            if (current != null)
-                return current.value;
-            current = Bucket.searchTree(this.topLevel[keys[3]], key);
-            if (current != null)
-                return current.value;
+        int newSizeTemp = this.newSize.get();
+        int topSizeTemp = this.topSize.get();
+        int bottomSizeTemp = this.bottomSize.get();
+        int[] keys = hash(key);
+        Bucket current = Bucket.searchTree(this.bottomLevel.get()[keys[5]], key);
+        if (current != null)
+            return current.value;
+        current = Bucket.searchTree(this.bottomLevel.get()[keys[4]], key);
+        if (current != null)
+            return current.value;
+        current = Bucket.searchTree(this.topLevel.get()[keys[3]], key);
+        if (current != null)
+            return current.value;
+        current = Bucket.searchTree(this.topLevel.get()[keys[2]], key);
+        if (current != null)
+            return current.value;
+        current = Bucket.searchTree(this.newLevel.get()[keys[1]], key);
+        if (current != null)
+            return current.value;
+        current = Bucket.searchTree(this.newLevel.get()[keys[0]], key);
+        if (current != null)
+            return current.value;
+        if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
+                && bottomSizeTemp == this.bottomSize.get())
+            return this.search(key);
+        else
             return -1;
-        } else {
-            int[] keys = this.hash(key);
-            Bucket current = Bucket.searchTree(this.bottomLevel[keys[2]], key);
-            if (current != null)
-                return current.value;
-            current = Bucket.searchTree(this.bottomLevel[keys[3]], key);
-            if (current != null)
-                return current.value;
-            current = Bucket.searchTree(this.topLevel[keys[0]], key) ;
-            if (current != null)
-                return current.value;
-            current = Bucket.searchTree(this.topLevel[keys[1]], key);
-            if (current != null)
-                return current.value;
-            return -1;
-        }
     }
 
     public int getIndex(String key) {
@@ -133,92 +169,73 @@ public class ClevelHashTable implements Runnable {
             return keys[1];
         return -1; // returns -1 if not found
     }
+
     /**
      * Delete a key-value pair from the hashtable
-     * @param key The key of the item that is to be deleted
+     * 
+     * @param key   The key of the item that is to be deleted
      * @param value The value associated with the key
      */
     public void delete(String key) {
-        if (!this.isResizing.get()){
+        if (!this.isResizing.get()) {
             int[] keys = this.hash(key);
-        int index = this.getIndex(key);
-        boolean topOrBottom = true;
-        if (index == -1)
-            return;
-        for (int i = 0; i < keys.length; i++) {
-            if (keys[i] == index) {
-                if (i <= 1)
-                    topOrBottom = true;
-                else
-                    topOrBottom = false;
-                break;
+            int index = this.getIndex(key);
+            boolean topOrBottom = true;
+            if (index == -1)
+                return;
+            for (int i = 0; i < keys.length; i++) {
+                if (keys[i] == index) {
+                    if (i <= 1)
+                        topOrBottom = true;
+                    else
+                        topOrBottom = false;
+                    break;
+                }
             }
-        }
-        if (topOrBottom) {
-            this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key);
+            if (topOrBottom) {
+                this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key);
+                return;
+            }
+            this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key);
             return;
-        }
-        this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key);
-        return;
-        }
-        else {
+        } else {
             // TODO: concurrent delete
 
         }
     }
 
-    // resize the hashtable
-    private void resize() {
-        for (Bucket root : bottomLevel) {
-            reHashNode(root, this.newLevel);
-        }
-        this.bottomLevel = this.topLevel;
-        this.topLevel = this.newLevel;
-        this.newLevel = new Bucket[newLevelSize];
-        this.isResizing.set(false);
-    }
 
-    // rehash all the nodes in that root to the new level
-    private void reHashNode(Bucket root, Bucket[] newLevel) {
-        if (root == null)
-            return;
-        insertRehash(root.key, root.value);
-        reHashNode(root.left, newLevel);
-        reHashNode(root.right, newLevel);
-    }
 
-   // Rehash and insert the key-value pair into the new level while the hashtable is resizing
-    private boolean insertRehash(String key, Integer value) {
-        int[] keys = this.hash(key);
-        if (Bucket.count(newLevel[keys[0]]) < 8) {
-            newLevel[keys[0]] = Bucket.insertTree(key, value, newLevel[keys[0]]);
-            return true;
-        } else if (Bucket.count(newLevel[keys[1]]) < 8) {
-            newLevel[keys[1]] = Bucket.insertTree(key, value, newLevel[keys[1]]);
-            return true;
-        } else
-            return false;
-    }
+    
 
     // Hashing function
     private int[] hash(String key) {
-        int[] keys = new int[4];
-        int num = key.hashCode();// + value.hashCode();
+        int num = key.hashCode() & 0x7fffffff;
         if (num < 0)
             num *= -1;
 
-        keys[0] = num % (topSize);
-        if (keys[0] >= topSize / 2)
-            keys[1] = keys[0] - topSize / 2;
-        else
-            keys[1] = keys[0] + topSize / 2;
+        int[] keys = new int[6];
+        int newSizeTemp = this.newSize.get();
+        int topSizeTemp = this.topSize.get();
+        int bottomSizeTemp = this.bottomSize.get();
 
-        keys[2] = num % bottomSize;
-        if (keys[2] >= bottomSize / 2)
-            keys[3] = keys[2] - bottomSize / 2;
+        keys[0] = num % (newSizeTemp);
+
+        if (keys[0] >= newSizeTemp / 2)
+            keys[1] = keys[0] - newSizeTemp / 2;
         else
-            keys[3] = keys[2] + bottomSize / 2;
-        return keys;
+            keys[1] = keys[0] + newSizeTemp / 2;
+
+        keys[2] = keys[0] / 2;
+        keys[3] = keys[1] / 2;
+        keys[4] = keys[2] / 2;
+        keys[5] = keys[3] / 2;
+
+        if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
+                && bottomSizeTemp == this.bottomSize.get())
+            return keys;
+        else
+            return hash(key);
     }
 
     /**
@@ -226,16 +243,16 @@ public class ClevelHashTable implements Runnable {
      */
     public void printTable() {
         System.out.println("Top Array:");
-        for (int i = 0; i < topSize; i++) {
+        for (int i = 0; i < topSize.get(); i++) {
             System.out.print("    Tree no. " + i + ": {");
-            Bucket.inOrderPrint(this.topLevel[i]);
+            Bucket.inOrderPrint(this.topLevel.get()[i]);
             System.out.println("}");
         }
         System.out.println();
         System.out.println("Bottom Array:");
-        for (int i = 0; i < bottomSize; i++) {
+        for (int i = 0; i < bottomSize.get(); i++) {
             System.out.print("    Tree no. " + i + ": {");
-            Bucket.inOrderPrint(this.bottomLevel[i]);
+            Bucket.inOrderPrint(this.bottomLevel.get()[i]);
             System.out.println("}");
         }
         System.out.println();

@@ -16,7 +16,7 @@ public class Threads implements Runnable{
     @Override
     public void run(){
         Random rndm = new Random();
-        int index = rndm.nextInt(3);
+        int index = rndm.nextInt(1);
         int num = rndm.nextInt(100);
         switch (index) {
             case 0:
