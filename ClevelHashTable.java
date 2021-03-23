@@ -55,69 +55,119 @@ public class ClevelHashTable implements Runnable {
      *         successful
      */
     public boolean insert(String key, Integer value) {
-        // temp vars for sizes
-        int[] keys = this.hash(key);
-        if (isResizing.get()) {
-            return insertRehash(key, value);
-        } else {
-            if (Bucket.count(this.topLevel.get()[keys[2]]) < 8) {
-                this.topLevel.get()[keys[2]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[2]]);
-                return true;
-            } else if (Bucket.count(this.topLevel.get()[keys[3]]) < 8) {
-                this.topLevel.get()[keys[3]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[3]]);
-                return true;
-            } else if (Bucket.count(this.bottomLevel.get()[keys[4]]) < 8) {
-                this.bottomLevel.get()[keys[4]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[4]]);
-                return true;
-            } else if (Bucket.count(this.bottomLevel.get()[keys[5]]) < 8) {
-                this.bottomLevel.get()[keys[5]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[5]]);
-                return true;
-            } else {
-                this.isResizing.set(true);
-                Thread resize = new Thread(this);
+        if (search(key) >= 0)
+            return false;
+        if (!isResizing.get()) {
+            AtomicReference<Bucket[]> local = this.newLevel;
+            int[] keys = this.hash(key);
+            // if (local.compareAndSet(local.get(), this.newLevel.get()))
 
-                resize.start();
-                return this.insert(key, value);
+            if (Bucket.count(this.topLevel.get()[keys[2]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.topLevel.get()[keys[2]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[2]]);
+                    return true;
+                }
+                return insert(key, value);
+            } else if (Bucket.count(this.topLevel.get()[keys[3]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.topLevel.get()[keys[3]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[3]]);
+                    return true;
+                }
+                return insert(key, value);
+            } else if (Bucket.count(this.bottomLevel.get()[keys[4]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.bottomLevel.get()[keys[4]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[4]]);
+                    return true;
+                }
+                return insert(key, value);
+            } else if (Bucket.count(this.bottomLevel.get()[keys[5]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.bottomLevel.get()[keys[5]] = Bucket.insertTree(key, value, this.bottomLevel.get()[keys[5]]);
+                    return true;
+                }
+                return insert(key, value);
+            } else {
+                if (!this.isResizing.get()) {
+                    this.isResizing.set(true);
+                    Thread resize = new Thread(this);
+                    resize.start();
+                    return this.insert(key, value);
+                } else
+                    return this.insert(key, value);
+
             }
+
+        } else {
+            AtomicReference<Bucket[]> local = this.newLevel;
+            int[] keys = this.hash(key);
+            // if (local.compareAndSet(local.get(), this.newLevel.get()))
+
+            if (Bucket.count(this.newLevel.get()[keys[0]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.newLevel.get()[keys[0]] = Bucket.insertTree(key, value, this.newLevel.get()[keys[0]]);
+                    return true;
+                }
+                return insert(key, value);
+            } else if (Bucket.count(this.newLevel.get()[keys[1]]) < 8) {
+                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                    this.newLevel.get()[keys[1]] = Bucket.insertTree(key, value, this.newLevel.get()[keys[1]]);
+                    return true;
+                }
+                return insert(key, value);
+            }
+
+            return false;
         }
     }
+
     // Rehash and insert the key-value pair into the new level while the hashtable
     // is resizing
     private boolean insertRehash(String key, Integer value) {
+        AtomicReference<Bucket[]> local = this.newLevel;
         int[] keys = this.hash(key);
         if (Bucket.count(newLevel.get()[keys[0]]) < 8) {
-            newLevel.get()[keys[0]] = Bucket.insertTree(key, value, newLevel.get()[keys[0]]);
-            return true;
-        } else if (Bucket.count(newLevel.get()[keys[1]]) < 8) {
-            newLevel.get()[keys[1]] = Bucket.insertTree(key, value, newLevel.get()[keys[1]]);
-            return true;
-        } else
-            return false;
-    }
-        // resize the hashtable
-        private void resize() {
-            System.out.println("***************Resizing****************");
-            for (Bucket root : bottomLevel.get()) {
-                reHashNode(root, this.newLevel.get());
+            if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                newLevel.get()[keys[0]] = Bucket.insertTree(key, value, newLevel.get()[keys[0]]);
+                return true;
             }
-            this.newSize.set(this.newSize.get() * 2);
-            this.topSize.set(this.topSize.get() * 2);
-            this.bottomSize.set(this.bottomSize.get() * 2);
-            
-            this.bottomLevel = this.topLevel;
-            this.topLevel = this.newLevel;
-            this.newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
-            this.isResizing.set(false);
+            // return this.insert(key, value);
+        } else if (Bucket.count(newLevel.get()[keys[1]]) < 8) {
+            if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
+                newLevel.get()[keys[1]] = Bucket.insertTree(key, value, newLevel.get()[keys[1]]);
+                return true;
+            }
+            // return this.insert(key, value);
         }
-    
-        // rehash all the nodes in that root to the new level
-        private void reHashNode(Bucket root, Bucket[] newLevel) {
-            if (root == null)
-                return;
-            insertRehash(root.key, root.value);
-            reHashNode(root.left, newLevel);
-            reHashNode(root.right, newLevel);
+        return false;
+
+    }
+
+    // resize the hashtable
+    private void resize() {
+        this.isResizing.set(true);
+        System.out.println("***************Resizing****************");
+        for (Bucket root : this.bottomLevel.get()) {
+            reHashNode(root, this.newLevel.get());
         }
+        this.isResizing.set(false);
+        this.newSize.set(this.newSize.get() * 2);
+        this.topSize.set(this.topSize.get() * 2);
+        this.bottomSize.set(this.bottomSize.get() * 2);
+
+        this.bottomLevel.set(this.topLevel.get());
+        this.topLevel.set(this.newLevel.get());
+        this.newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
+
+    }
+
+    // rehash all the nodes in that root to the new level
+    private void reHashNode(Bucket root, Bucket[] newLevel) {
+        if (root == null)
+            return;
+        insertRehash(root.key, root.value);
+        reHashNode(root.left, newLevel);
+        reHashNode(root.right, newLevel);
+    }
 
     /**
      * Search in the hashtable if that key-value pair exist
@@ -130,6 +180,7 @@ public class ClevelHashTable implements Runnable {
         int newSizeTemp = this.newSize.get();
         int topSizeTemp = this.topSize.get();
         int bottomSizeTemp = this.bottomSize.get();
+        AtomicReference<Bucket[]> local = this.newLevel;
         int[] keys = hash(key);
         Bucket current = Bucket.searchTree(this.bottomLevel.get()[keys[5]], key);
         if (current != null)
@@ -149,11 +200,11 @@ public class ClevelHashTable implements Runnable {
         current = Bucket.searchTree(this.newLevel.get()[keys[0]], key);
         if (current != null)
             return current.value;
-        if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
-                && bottomSizeTemp == this.bottomSize.get())
-            return this.search(key);
-        else
+        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()))
             return -1;
+
+        else
+            return this.search(key);
     }
 
     public int getIndex(String key) {
@@ -204,12 +255,9 @@ public class ClevelHashTable implements Runnable {
         }
     }
 
-
-
-    
-
     // Hashing function
     private int[] hash(String key) {
+        AtomicReference<Bucket[]> local = this.newLevel;
         int num = key.hashCode() & 0x7fffffff;
         if (num < 0)
             num *= -1;
@@ -230,10 +278,11 @@ public class ClevelHashTable implements Runnable {
         keys[3] = keys[1] / 2;
         keys[4] = keys[2] / 2;
         keys[5] = keys[3] / 2;
-
-        if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
-                && bottomSizeTemp == this.bottomSize.get())
+        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()))
             return keys;
+        // if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
+        // && bottomSizeTemp == this.bottomSize.get())
+        // return keys;
         else
             return hash(key);
     }
