@@ -1,4 +1,3 @@
-
 /**
  * @author Ahmed Elshetany
  * @author Ankita Tripathi
@@ -108,9 +107,7 @@ public class Bucket {
         if (root.key.equals(key))
             return root;
         Bucket current = root;
-        //Bucket parent = parent(root, current);
         while (current != null) {
-            //parent = current;
             if (key.compareTo(current.key) < 0)
                 current = current.left;
             else if (key.compareTo(current.key) > 0)

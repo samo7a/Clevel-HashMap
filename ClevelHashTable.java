@@ -91,6 +91,11 @@ public class ClevelHashTable implements Runnable {
                     this.isResizing.set(true);
                     Thread resize = new Thread(this);
                     resize.start();
+                    // try {
+                    // resize.join();
+                    // } catch (Exception e){
+                    // System.out.println(e.getMessage());
+                    // }
                     return this.insert(key, value);
                 } else
                     return this.insert(key, value);
@@ -143,13 +148,13 @@ public class ClevelHashTable implements Runnable {
     }
 
     // resize the hashtable
-    private void resize() {
+    public void resize() {
         this.isResizing.set(true);
         System.out.println("***************Resizing****************");
         for (Bucket root : this.bottomLevel.get()) {
-            reHashNode(root, this.newLevel.get());
+            reHashNode(root);
         }
-        this.isResizing.set(false);
+
         this.newSize.set(this.newSize.get() * 2);
         this.topSize.set(this.topSize.get() * 2);
         this.bottomSize.set(this.bottomSize.get() * 2);
@@ -157,16 +162,17 @@ public class ClevelHashTable implements Runnable {
         this.bottomLevel.set(this.topLevel.get());
         this.topLevel.set(this.newLevel.get());
         this.newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
+        this.isResizing.set(false);
 
     }
 
     // rehash all the nodes in that root to the new level
-    private void reHashNode(Bucket root, Bucket[] newLevel) {
+    private void reHashNode(Bucket root) {
         if (root == null)
             return;
         insertRehash(root.key, root.value);
-        reHashNode(root.left, newLevel);
-        reHashNode(root.right, newLevel);
+        reHashNode(root.left);
+        reHashNode(root.right);
     }
 
     /**
@@ -256,35 +262,36 @@ public class ClevelHashTable implements Runnable {
     }
 
     // Hashing function
-    private int[] hash(String key) {
+    public int[] hash(String key) {
         AtomicReference<Bucket[]> local = this.newLevel;
         int num = key.hashCode() & 0x7fffffff;
-        if (num < 0)
-            num *= -1;
-
         int[] keys = new int[6];
         int newSizeTemp = this.newSize.get();
         int topSizeTemp = this.topSize.get();
         int bottomSizeTemp = this.bottomSize.get();
+        System.out.println("num : " + num);
+        keys[0] = num % (newSizeTemp /2);
+        keys[1] = keys[0] + newSizeTemp / 2;
+        
 
-        keys[0] = num % (newSizeTemp);
+        // keys[2] = num % (topSizeTemp /2);
+        // keys[3] = keys[2] + topSizeTemp / 2;
 
-        if (keys[0] >= newSizeTemp / 2)
-            keys[1] = keys[0] - newSizeTemp / 2;
-        else
-            keys[1] = keys[0] + newSizeTemp / 2;
+        // keys[4] = num % (bottomSizeTemp /2);
+        // keys[5] = keys[4] + bottomSizeTemp / 2;
 
         keys[2] = keys[0] / 2;
         keys[3] = keys[1] / 2;
         keys[4] = keys[2] / 2;
         keys[5] = keys[3] / 2;
-        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()))
+        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()) && newSizeTemp == this.newSize.get()
+                && topSizeTemp == this.topSize.get() && bottomSizeTemp == this.bottomSize.get())
             return keys;
-        // if (newSizeTemp == this.newSize.get() && topSizeTemp == this.topSize.get()
-        // && bottomSizeTemp == this.bottomSize.get())
-        // return keys;
-        else
+        else {
+            System.out.println("references changed, computing hash agian");
             return hash(key);
+        }
+
     }
 
     /**
