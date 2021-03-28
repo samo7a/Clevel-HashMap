@@ -264,26 +264,21 @@ public class ClevelHashTable implements Runnable {
     // Hashing function
     public int[] hash(String key) {
         AtomicReference<Bucket[]> local = this.newLevel;
-        int num = key.hashCode() & 0x7fffffff;
+        int num = (key.hashCode() * 31)  &  0x7fffffff;
         int[] keys = new int[6];
         int newSizeTemp = this.newSize.get();
         int topSizeTemp = this.topSize.get();
         int bottomSizeTemp = this.bottomSize.get();
-        System.out.println("num : " + num);
-        keys[0] = num % (newSizeTemp /2);
-        keys[1] = keys[0] + newSizeTemp / 2;
+
+        keys[0] = num % newSizeTemp;
+        keys[1] = (keys[0] + keys[0] * keys[0]) % newSizeTemp;
         
 
-        // keys[2] = num % (topSizeTemp /2);
-        // keys[3] = keys[2] + topSizeTemp / 2;
+        keys[2] = num % topSizeTemp;
+        keys[3] = (keys[2] + keys[2] * keys[2]) % topSizeTemp;
 
-        // keys[4] = num % (bottomSizeTemp /2);
-        // keys[5] = keys[4] + bottomSizeTemp / 2;
-
-        keys[2] = keys[0] / 2;
-        keys[3] = keys[1] / 2;
-        keys[4] = keys[2] / 2;
-        keys[5] = keys[3] / 2;
+        keys[4] = num % bottomSizeTemp;
+        keys[5] = (keys[4] + keys[4] * keys[4]) % bottomSizeTemp;
         if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()) && newSizeTemp == this.newSize.get()
                 && topSizeTemp == this.topSize.get() && bottomSizeTemp == this.bottomSize.get())
             return keys;
