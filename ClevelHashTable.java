@@ -24,14 +24,14 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 
 public class ClevelHashTable implements Runnable {
-    AtomicBoolean isResizing;
-    AtomicReference<Bucket[]> newLevel;
-    AtomicReference<Bucket[]> topLevel;
-    AtomicReference<Bucket[]> bottomLevel;
+    volatile AtomicBoolean isResizing;
+    volatile AtomicReference<Bucket[]> newLevel;
+    volatile AtomicReference<Bucket[]> topLevel;
+    volatile AtomicReference<Bucket[]> bottomLevel;
     AtomicInteger newSize;
     AtomicInteger topSize;
     AtomicInteger bottomSize;
-    ReentrantLock lock = new ReentrantLock();
+    volatile ReentrantLock lock = new ReentrantLock();
 
     /**
      * Constructor to create an empty hash table
@@ -60,8 +60,6 @@ public class ClevelHashTable implements Runnable {
         if (!isResizing.get()) {
             AtomicReference<Bucket[]> local = this.newLevel;
             int[] keys = this.hash(key);
-            // if (local.compareAndSet(local.get(), this.newLevel.get()))
-
             if (Bucket.count(this.topLevel.get()[keys[2]]) < 8) {
                 if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
                     this.topLevel.get()[keys[2]] = Bucket.insertTree(key, value, this.topLevel.get()[keys[2]]);
@@ -89,39 +87,14 @@ public class ClevelHashTable implements Runnable {
             } else {
                 if (!this.isResizing.get()) {
                     this.isResizing.set(true);
-                    Thread resize = new Thread(this);
-                    resize.start();
-                    // try {
-                    // resize.join();
-                    // } catch (Exception e){
-                    // System.out.println(e.getMessage());
-                    // }
+                    this.resize();
                     return this.insert(key, value);
                 } else
-                    return this.insert(key, value);
-
+                    return this.insertRehash(key, value);
             }
 
         } else {
-            AtomicReference<Bucket[]> local = this.newLevel;
-            int[] keys = this.hash(key);
-            // if (local.compareAndSet(local.get(), this.newLevel.get()))
-
-            if (Bucket.count(this.newLevel.get()[keys[0]]) < 8) {
-                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
-                    this.newLevel.get()[keys[0]] = Bucket.insertTree(key, value, this.newLevel.get()[keys[0]]);
-                    return true;
-                }
-                return insert(key, value);
-            } else if (Bucket.count(this.newLevel.get()[keys[1]]) < 8) {
-                if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
-                    this.newLevel.get()[keys[1]] = Bucket.insertTree(key, value, this.newLevel.get()[keys[1]]);
-                    return true;
-                }
-                return insert(key, value);
-            }
-
-            return false;
+            return insertRehash(key, value);
         }
     }
 
@@ -135,13 +108,11 @@ public class ClevelHashTable implements Runnable {
                 newLevel.get()[keys[0]] = Bucket.insertTree(key, value, newLevel.get()[keys[0]]);
                 return true;
             }
-            // return this.insert(key, value);
         } else if (Bucket.count(newLevel.get()[keys[1]]) < 8) {
             if (local.compareAndSet(this.newLevel.get(), this.newLevel.get())) {
                 newLevel.get()[keys[1]] = Bucket.insertTree(key, value, newLevel.get()[keys[1]]);
                 return true;
             }
-            // return this.insert(key, value);
         }
         return false;
 
@@ -149,21 +120,20 @@ public class ClevelHashTable implements Runnable {
 
     // resize the hashtable
     public void resize() {
-        this.isResizing.set(true);
         System.out.println("***************Resizing****************");
         for (Bucket root : this.bottomLevel.get()) {
             reHashNode(root);
         }
-
-        this.newSize.set(this.newSize.get() * 2);
-        this.topSize.set(this.topSize.get() * 2);
-        this.bottomSize.set(this.bottomSize.get() * 2);
+        lock.lock();
+        this.bottomSize = this.topSize;
+        this.topSize = this.newSize;
+        this.newSize = new AtomicInteger(this.newSize.get() * 2);
 
         this.bottomLevel.set(this.topLevel.get());
         this.topLevel.set(this.newLevel.get());
         this.newLevel = new AtomicReference<>(new Bucket[newSize.get()]);
+        lock.unlock();
         this.isResizing.set(false);
-
     }
 
     // rehash all the nodes in that root to the new level
@@ -183,9 +153,6 @@ public class ClevelHashTable implements Runnable {
      * @return the index of that key-value pair or -1 if not found
      */
     public int search(String key) {
-        int newSizeTemp = this.newSize.get();
-        int topSizeTemp = this.topSize.get();
-        int bottomSizeTemp = this.bottomSize.get();
         AtomicReference<Bucket[]> local = this.newLevel;
         int[] keys = hash(key);
         Bucket current = Bucket.searchTree(this.bottomLevel.get()[keys[5]], key);
@@ -208,7 +175,6 @@ public class ClevelHashTable implements Runnable {
             return current.value;
         if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()))
             return -1;
-
         else
             return this.search(key);
     }
@@ -216,13 +182,13 @@ public class ClevelHashTable implements Runnable {
     public int getIndex(String key) {
         int[] keys = this.hash(key); // another hash
         // search bottom level (bottom up search)
-        if (Bucket.searchTree(this.bottomLevel[keys[2]], key) != null)
+        if (Bucket.searchTree(this.bottomLevel.get()[keys[2]], key) != null)
             return keys[2];
-        if (Bucket.searchTree(this.bottomLevel[keys[3]], key) != null)
+        if (Bucket.searchTree(this.bottomLevel.get()[keys[3]], key) != null)
             return keys[3];
-        if (Bucket.searchTree(this.topLevel[keys[0]], key) != null)
+        if (Bucket.searchTree(this.topLevel.get()[keys[0]], key) != null)
             return keys[0];
-        if (Bucket.searchTree(this.topLevel[keys[1]], key) != null)
+        if (Bucket.searchTree(this.topLevel.get()[keys[1]], key) != null)
             return keys[1];
         return -1; // returns -1 if not found
     }
@@ -250,10 +216,10 @@ public class ClevelHashTable implements Runnable {
                 }
             }
             if (topOrBottom) {
-                this.topLevel[index] = Bucket.deleteTree(this.topLevel[index], key);
+                this.topLevel.get()[index] = Bucket.deleteTree(this.topLevel.get()[index], key);
                 return;
             }
-            this.bottomLevel[index] = Bucket.deleteTree(this.bottomLevel[index], key);
+            this.bottomLevel.get()[index] = Bucket.deleteTree(this.bottomLevel.get()[index], key);
             return;
         } else {
             // TODO: concurrent delete
@@ -264,7 +230,7 @@ public class ClevelHashTable implements Runnable {
     // Hashing function
     public int[] hash(String key) {
         AtomicReference<Bucket[]> local = this.newLevel;
-        int num = (key.hashCode() * 31)  &  0x7fffffff;
+        int num = (key.hashCode() * 31) & 0x7fffffff;
         int[] keys = new int[6];
         int newSizeTemp = this.newSize.get();
         int topSizeTemp = this.topSize.get();
@@ -275,16 +241,14 @@ public class ClevelHashTable implements Runnable {
         keys[2] = num % (topSizeTemp / 2);
         keys[3] = keys[2] + topSizeTemp / 2;
         keys[4] = num % (bottomSizeTemp / 2);
-        keys[5] = keys[4] + bottomSizeTemp / 2;
-       
-        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()) && newSizeTemp == this.newSize.get()
-                && topSizeTemp == this.topSize.get() && bottomSizeTemp == this.bottomSize.get())
-            return keys;
-        else {
-            System.out.println("references changed, computing hash agian");
-            return hash(key);
-        }
+        keys[5] = (keys[4] + (bottomSizeTemp / 2)) % bottomSizeTemp;
 
+        if (local.compareAndSet(this.newLevel.get(), this.newLevel.get()) && newSizeTemp == this.newSize.get()
+                && topSizeTemp == this.topSize.get() && bottomSizeTemp == this.bottomSize.get() && !lock.isLocked()) {
+            return keys;
+        }
+        System.out.println("reference changed");
+        return hash(key);
     }
 
     /**
