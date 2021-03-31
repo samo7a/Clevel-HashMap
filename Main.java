@@ -19,12 +19,12 @@ public class Main {
             // int[] hash = hashTable.hash(String.valueOf(2));
             // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
             for (int i = 0; i < 3000; i++) {
-                if (!hashtable.insert(String.valueOf(i), i)){
+                if (!hashtable.insert(String.valueOf(i), i)) {
                     throw new IllegalAccessError();
-                    //System.exit(0);
+                    // System.exit(0);
                 }
-                    
-            //         // System.out.println("Inserting " + i + " ........ Failed");
+
+                // // System.out.println("Inserting " + i + " ........ Failed");
             }
             // // hash = hashTable.hash(String.valueOf(2));
             // // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
@@ -39,16 +39,16 @@ public class Main {
             System.out.println(j);
             for (int i = 0; i < 100; i++) {
                 if (hashtable.search(String.valueOf(i)) < 0) {
-                    //System.out.println("Searching for " + i + " ........ XXXXXXXXX");
-                
+                    // System.out.println("Searching for " + i + " ........ XXXXXXXXX");
+
                     throw new IllegalAccessError();
-                    //System.exit(0);
-                    
+                    // System.exit(0);
+
                 }
-                // else 
-                //     System.out.println("Searching for " + i + " ........ found");
-                    
-                    // System.out.println("not found " + i);
+                // else
+                // System.out.println("Searching for " + i + " ........ found");
+
+                // System.out.println("not found " + i);
             }
         }
         // hashTable.resize();

@@ -1,3 +1,4 @@
+
 /**
  * @author Ahmed Elshetany
  * @author Ankita Tripathi
@@ -97,8 +98,8 @@ public class Bucket {
     /**
      * Search the tree for the given key
      * 
-     * @param key   The key needed to be search
-     * @param root  The root of the tree
+     * @param key  The key needed to be search
+     * @param root The root of the tree
      * @return Null if not found or the bucket with the given key
      */
     public static Bucket searchTree(Bucket root, String key) {
@@ -112,7 +113,7 @@ public class Bucket {
                 current = current.left;
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
-            if (current != null ){
+            if (current != null) {
                 if (current.key.equals(key) && !current.isMarked.get())
                     return current;
             }
@@ -122,8 +123,9 @@ public class Bucket {
 
     /**
      * Delete a given key-value pair from the tree
+     * 
      * @param root The root of the tree
-     * @param key The key that is to be deleted
+     * @param key  The key that is to be deleted
      * @return The root of the tree from which the key-value pair is deleted
      */
     public static Bucket deleteTree(Bucket root, String key) {
@@ -136,13 +138,13 @@ public class Bucket {
             if (key.compareTo(current.key) < 0)
                 current = current.left;
             else if (key.compareTo(current.key) > 0)
-                current = current.right; 
+                current = current.right;
             if (current != null && current.key.equals(key) && !current.isMarked.get())
                 break;
         }
 
         current = parent;
-        parent = parent (root, parent);
+        parent = parent(root, parent);
         if (parent == null) {
             if (current.key.equals(key))
                 return null;
@@ -210,6 +212,7 @@ public class Bucket {
 
     /**
      * Find the parent of a node
+     * 
      * @param root The root of the tree
      * @param node The current node
      * @return The parent of a current node
@@ -226,6 +229,7 @@ public class Bucket {
         else
             return null;
     }
+
     // Helper function to find the minimum value in the tree
     private static Bucket minVal(Bucket root) {
         if (root.left == null)
@@ -233,16 +237,19 @@ public class Bucket {
         else
             return minVal(root.left);
     }
+
     // Helper function to check if the node doens't have any child
     private static boolean isLeaf(Bucket node) {
         if (node == null)
             return true;
         return (node.left == null && node.right == null);
     }
+
     // Helper function to check if a node only has a left child
     private static boolean hasOnlyLeftChild(Bucket node) {
         return (node.left != null && node.right == null);
     }
+
     // Helper function to check if the node only has right child
     private static boolean hasOnlyRightChild(Bucket node) {
         return (node.left == null && node.right != null);
@@ -250,6 +257,7 @@ public class Bucket {
 
     /**
      * Print the tree in pre-order format
+     * 
      * @param root The root of the tree
      */
     public static void preOrderPrint(Bucket root) {
@@ -262,7 +270,8 @@ public class Bucket {
     }
 
     /**
-     *  Print the Tree in in-order format
+     * Print the Tree in in-order format
+     * 
      * @param root The root of the tree
      */
     public static void inOrderPrint(Bucket root) {
@@ -276,6 +285,7 @@ public class Bucket {
 
     /**
      * Print the tree in post-order format
+     * 
      * @param root The root of the tree
      */
     public static void postOrderPrint(Bucket root) {
@@ -289,6 +299,7 @@ public class Bucket {
 
     /**
      * Find the number of elements in a tree
+     * 
      * @param root The root of the tree
      * @return The number of elements in a tree
      */
@@ -305,7 +316,9 @@ public class Bucket {
     public void unlock() {
         lock.unlock();
     }
-    // Validates if the parent points to the current, and both are not marked as logically deleted
+
+    // Validates if the parent points to the current, and both are not marked as
+    // logically deleted
     private static boolean validate(Bucket parent, Bucket current) {
         if (parent != null)
             return ((!current.isMarked.get() && !parent.isMarked.get())
