@@ -231,35 +231,11 @@ public class ClevelHashTable implements Runnable {
             this.topLevel.get()[keys[2]] = Bucket.deleteTree(this.topLevel.get()[keys[2]], key);
 
         if (localNew.compareAndSet(this.newLevel.get(), this.newLevel.get()))
-            this.newLevel.get()[keys[3]] = Bucket.deleteTree(this.newLevel.get()[keys[3]], key);
+            this.newLevel.get()[keys[1]] = Bucket.deleteTree(this.newLevel.get()[keys[1]], key);
         if (localNew.compareAndSet(this.newLevel.get(), this.newLevel.get()))
-            this.newLevel.get()[keys[2]] = Bucket.deleteTree(this.newLevel.get()[keys[2]], key);
+            this.newLevel.get()[keys[0]] = Bucket.deleteTree(this.newLevel.get()[keys[0]], key);
 
-        if (!this.isResizing.get()) {
-            int[] keys = this.hash(key);
-            int index = this.getIndex(key);
-            boolean topOrBottom = true;
-            if (index == -1)
-                return;
-            for (int i = 0; i < keys.length; i++) {
-                if (keys[i] == index) {
-                    if (i <= 1)
-                        topOrBottom = true;
-                    else
-                        topOrBottom = false;
-                    break;
-                }
-            }
-            if (topOrBottom) {
-                this.topLevel.get()[index] = Bucket.deleteTree(this.topLevel.get()[index], key);
-                return;
-            }
-            this.bottomLevel.get()[index] = Bucket.deleteTree(this.bottomLevel.get()[index], key);
-            return;
-        } else {
-            // TODO: concurrent delete
-
-        }
+        return (this.search(key) < 0);
     }
 
     // Hashing function

@@ -14,43 +14,54 @@ public class Main {
         // }
         // }
         // hashtable.hashtable.printTable();
-        for (int j = 0; j < 1000000; j++) {
-            ClevelHashTable hashtable = new ClevelHashTable();
-            // int[] hash = hashTable.hash(String.valueOf(2));
-            // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
-            for (int i = 0; i < 3000; i++) {
-                if (!hashtable.insert(String.valueOf(i), i)) {
-                    throw new IllegalAccessError();
-                    // System.exit(0);
-                }
+        // for (int j = 0; j < 1000000; j++) {
+        ClevelHashTable hashtable = new ClevelHashTable();
 
-                // // System.out.println("Inserting " + i + " ........ Failed");
-            }
-            // // hash = hashTable.hash(String.valueOf(2));
-            // // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            // hashtable.hashtable.printTable();
-            // hashtable.printTable();
-            System.out.println(j);
-            for (int i = 0; i < 100; i++) {
-                if (hashtable.search(String.valueOf(i)) < 0) {
-                    // System.out.println("Searching for " + i + " ........ XXXXXXXXX");
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("10", 10, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("14", 14, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("18", 18, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("21", 21, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("25", 25, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("29", 29, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("3", 3, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("7", 7, hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.deleteTree(hashtable.bottomLevel.get()[1] , "14");
+        Bucket.preOrderPrint(hashtable.bottomLevel.get()[1] );
+        // // int[] hash = hashTable.hash(String.valueOf(2));
+        // // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
+        // for (int i = 0; i < 3000; i++) {
+        // if (!hashtable.insert(String.valueOf(i), i)) {
+        // throw new IllegalAccessError();
+        // // System.exit(0);
+        // }
 
-                    throw new IllegalAccessError();
-                    // System.exit(0);
+        // // // System.out.println("Inserting " + i + " ........ Failed");
+        // }
+        // // // hash = hashTable.hash(String.valueOf(2));
+        // // // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
+        // try {
+        // Thread.sleep(10);
+        // } catch (InterruptedException e) {
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
+        // }
+        // // hashtable.hashtable.printTable();
+        // // hashtable.printTable();
+        // System.out.println(j);
+        // for (int i = 0; i < 100; i++) {
+        // if (hashtable.search(String.valueOf(i)) < 0) {
+        // // System.out.println("Searching for " + i + " ........ XXXXXXXXX");
 
-                }
-                // else
-                // System.out.println("Searching for " + i + " ........ found");
+        // throw new IllegalAccessError();
+        // // System.exit(0);
 
-                // System.out.println("not found " + i);
-            }
-        }
+        // }
+        // // else
+        // // System.out.println("Searching for " + i + " ........ found");
+
+        // // System.out.println("not found " + i);
+        // }
+        // }
         // hashTable.resize();
         // hash = hashTable.hash(String.valueOf(2));
         // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
