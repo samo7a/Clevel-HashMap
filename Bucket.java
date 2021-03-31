@@ -66,7 +66,7 @@ public class Bucket {
                 current = current.left;
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
-            else if (current.key.equals(key))
+            if (current != null && current.key.equals(key))
                 return root;
         }
         Bucket grandParent = parent(root, parent);
@@ -135,20 +135,24 @@ public class Bucket {
         Bucket parent = parent(root, current);
         while (current != null) {
             parent = current;
-            if (key.compareTo(current.key) < 0)
+            if (key.compareTo(current.key) < 0 && current.left != null)
                 current = current.left;
-            else if (key.compareTo(current.key) > 0)
+            else if (key.compareTo(current.key) > 0 && current.right != null)
                 current = current.right;
-            if (current != null && current.key.equals(key) && !current.isMarked.get())
+            else if (key.compareTo(current.key) == 0) {
                 break;
+            }
+            // if (current != null && current.key.equals(key) && !current.isMarked.get())
+            // break;
         }
 
-        current = parent;
-        parent = parent(root, parent);
-        if (parent == null) {
-            if (current.key.equals(key))
-                return null;
-        } else
+        // current = parent;
+        parent = parent(root, current);
+        // if (parent == null) // {
+        // // if (current.key.equals(key))
+        // return null;
+        // // } else
+        if (parent != null)
             parent.lock();
 
         try {
@@ -222,9 +226,9 @@ public class Bucket {
             return null;
         if (root.left == node || root.right == node)
             return root;
-        if (node.value < root.value)
+        if (node.key.compareTo(root.key) < 0)
             return parent(root.left, node);
-        if (node.value > root.value)
+        if (node.key.compareTo(root.key) > 0)
             return parent(root.right, node);
         else
             return null;
@@ -324,6 +328,6 @@ public class Bucket {
             return ((!current.isMarked.get() && !parent.isMarked.get())
                     && (current == parent.left || current == parent.right));
         else
-            return true;
+            return (!current.isMarked.get());
     }
 }

@@ -17,16 +17,18 @@ public class Main {
         // for (int j = 0; j < 1000000; j++) {
         ClevelHashTable hashtable = new ClevelHashTable();
 
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("10", 10, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("14", 14, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("18", 18, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("21", 21, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("25", 25, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("29", 29, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("3", 3, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.insertTree("7", 7, hashtable.bottomLevel.get()[1] );
-        hashtable.bottomLevel.get()[1] = Bucket.deleteTree(hashtable.bottomLevel.get()[1] , "14");
-        Bucket.preOrderPrint(hashtable.bottomLevel.get()[1] );
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("10", 10, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("18", 18, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("3", 3, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("7", 7, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("25", 25, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("29", 29, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("14", 14, hashtable.bottomLevel.get()[1]);
+        hashtable.bottomLevel.get()[1] = Bucket.insertTree("21", 21, hashtable.bottomLevel.get()[1]);
+        // hashtable.bottomLevel.get()[1] =
+        Bucket.deleteTree(hashtable.bottomLevel.get()[1] , "3");
+        Bucket.inOrderPrint(hashtable.bottomLevel.get()[1]);
+        System.out.println("aa".compareTo("a"));
         // // int[] hash = hashTable.hash(String.valueOf(2));
         // // for (int i = 0; i < hash.length; i++) System.out.println(hash[i]);
         // for (int i = 0; i < 3000; i++) {
