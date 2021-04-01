@@ -11,7 +11,7 @@ public class Threads implements Runnable {
     @Override
     public void run() {
         Random rndm = new Random();
-        int index = rndm.nextInt(1);
+        int index = rndm.nextInt(3);
         int num = rndm.nextInt(100);
         switch (index) {
         case 0:
@@ -21,7 +21,10 @@ public class Threads implements Runnable {
                 System.out.println("Inserting " + num + " ........ Failed");
             break;
         case 1:
-            this.hashtable.delete(String.valueOf(num));
+            if(this.hashtable.delete(String.valueOf(num)))
+                System.out.println("deleting " + num + " ........ Done");
+            else
+                System.out.println("deleting " + num + " ........ Failed");
             break;
 
         default:

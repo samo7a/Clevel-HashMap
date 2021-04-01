@@ -235,7 +235,7 @@ public class ClevelHashTable implements Runnable {
         if (localNew.compareAndSet(this.newLevel.get(), this.newLevel.get()))
             this.newLevel.get()[keys[0]] = Bucket.deleteTree(this.newLevel.get()[keys[0]], key);
 
-        return (this.search(key) < 0);
+        return (this.search(key) >= 0);
     }
 
     // Hashing function
