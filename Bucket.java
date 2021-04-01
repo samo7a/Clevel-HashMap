@@ -8,6 +8,7 @@
  * @version 1.0
  */
 import java.util.concurrent.locks.ReentrantLock;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -129,29 +130,39 @@ public class Bucket {
      * @return The root of the tree from which the key-value pair is deleted
      */
     public static Bucket deleteTree(Bucket root, String key) {
-        Bucket current = root;
-        if (current == null)
-            return null;
-        Bucket parent = parent(root, current);
-        while (current != null) {
-            parent = current;
-            if (key.compareTo(current.key) < 0 && current.left != null)
-                current = current.left;
-            else if (key.compareTo(current.key) > 0 && current.right != null)
-                current = current.right;
-            else if (key.compareTo(current.key) == 0) {
-                break;
-            }
-            // if (current != null && current.key.equals(key) && !current.isMarked.get())
-            // break;
-        }
+       // System.out.println("Deleting " + key);
+        // Bucket current = root;
+        // if (current == null)
+        // return null;
+        // Bucket parent = parent(root, current);
+        // while (current != null) {
+        // parent = current;
+        // if (key.compareTo(current.key) < 0 )
+        // current = current.left;
+        // else if (key.compareTo(current.key) > 0 )
+        // current = current.right;
+        // else if (key.compareTo(current.key) == 0) {
+        // break;
+        // }
+        // // if (current != null && current.key.equals(key) && !current.isMarked.get())
+        // // break;
+        // }
 
         // current = parent;
-        parent = parent(root, current);
+        // parent = parent(root, current);
         // if (parent == null) // {
         // // if (current.key.equals(key))
         // return null;
         // // } else
+        String savKey;
+        Bucket newDelNode;
+
+        if (root == null)
+            return root;
+        Bucket current = searchTree(root, key);
+        if (current == null)
+            return root;
+        Bucket parent = parent(root, current);
         if (parent != null)
             parent.lock();
 
@@ -164,13 +175,10 @@ public class Bucket {
                 }
                 if (current.key.equals(key)) {
                     current.isMarked.set(true);
-
-                    String savKey;
-                    Bucket newDelNode;
                     if (isLeaf(current)) {
                         if (parent == null)
                             return null;
-                        if (key.compareTo(current.key) < 0)
+                        if (key.compareTo(parent.key) < 0)
                             parent.left = null;
                         else
                             parent.right = null;
@@ -180,7 +188,7 @@ public class Bucket {
                     if (hasOnlyLeftChild(current)) {
                         if (parent == null)
                             return current.left;
-                        if (key.compareTo(current.key) < 0)
+                        if (key.compareTo(parent.key) < 0)
                             parent.left = parent.left.left;
                         else
                             parent.right = parent.right.left;
@@ -190,7 +198,7 @@ public class Bucket {
                     if (hasOnlyRightChild(current)) {
                         if (parent == null)
                             return current.right;
-                        if (key.compareTo(current.key) < 0)
+                        if (key.compareTo(parent.key) < 0)
                             parent.left = parent.left.right;
                         else
                             parent.right = parent.right.right;
@@ -199,7 +207,8 @@ public class Bucket {
                     }
                     newDelNode = minVal(current.right);
                     savKey = newDelNode.key;
-                    deleteTree(root, key);
+                    current.isMarked.set(false);
+                    deleteTree(root, savKey);
                     current.key = savKey;
                     root.size.getAndDecrement();
                     return root;
@@ -297,7 +306,7 @@ public class Bucket {
             postOrderPrint(root.left);
             postOrderPrint(root.right);
             if (!root.isMarked.get())
-                System.out.printf("(key:%s , value: %d)", root.key, root.value);
+                System.out.printf("(%s,%d)", root.key, root.value);
         }
     }
 
