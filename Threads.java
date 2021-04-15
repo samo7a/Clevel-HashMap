@@ -7,11 +7,12 @@ public class Threads implements Runnable {
     public Threads() {
         hashtable = new ClevelHashTable();
     }
+
     @Override
     public void run() {
         Random rndm = new Random();
         int index = rndm.nextInt(3);
-        int num = rndm.nextInt(50);
+        int num = rndm.nextInt(100);
         switch (index) {
         case 0:
             if (this.hashtable.insert(String.valueOf(num), num))

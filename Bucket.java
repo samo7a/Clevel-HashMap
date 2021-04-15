@@ -130,6 +130,11 @@ public class Bucket {
      * @return The root of the tree from which the key-value pair is deleted
      */
     public static Bucket deleteTree(Bucket root, String key) {
+        // For logical deletion the following variables are not required: savKey, savVal, newDelNode.
+        String savKey;
+        int savVal;
+        Bucket newDelNode;
+
         if (root == null)
             return root;
         Bucket current = searchTree(root, key);
@@ -158,7 +163,7 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    else if (hasOnlyLeftChild(current)) {
+                    if (hasOnlyLeftChild(current)) {
                         if (parent == null)
                             return current.left;
                         if (key.compareTo(parent.key) < 0)
@@ -168,7 +173,7 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    else if (hasOnlyRightChild(current)) {
+                    if (hasOnlyRightChild(current)) {
                         if (parent == null)
                             return current.right;
                         if (key.compareTo(parent.key) < 0)
@@ -178,10 +183,20 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    else {
-                        root.size.getAndDecrement();
-                        return root;
-                    }
+                    // The following else block will replace lines 191 - 199 for logical deletion
+                    // else {
+                    //     root.size.getAndDecrement();
+                    //     return root;
+                    // }
+                    newDelNode = minVal(current.right);
+                    savKey = newDelNode.key;
+                    savVal = newDelNode.value;
+                    current.isMarked.set(false);
+                    deleteTree(root, savKey);
+                    current.key = savKey;
+                    current.value = savVal;
+                    root.size.getAndDecrement();
+                    return root;
                 }
                 return root;
             } finally {
@@ -214,12 +229,12 @@ public class Bucket {
     }
 
     // Helper function to find the minimum value in the tree
-    // private static Bucket minVal(Bucket root) {
-    //     if (root.left == null)
-    //         return root;
-    //     else
-    //         return minVal(root.left);
-    // }
+    private static Bucket minVal(Bucket root) {
+        if (root.left == null)
+            return root;
+        else
+            return minVal(root.left);
+    }
 
     // Helper function to check if the node doens't have any child
     private static boolean isLeaf(Bucket node) {
