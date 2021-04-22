@@ -1,4 +1,3 @@
-
 /**
  * @author Ahmed Elshetany
  * @author Ankita Tripathi
@@ -57,6 +56,12 @@ public class Bucket {
             return temp;
         }
         if (root.key.equals(key)) {
+            // Micah: not sure what to return here but added check for isMarked so we can set it to true
+            if (root.isMarked.get())
+            {
+                root.isMarked.set(false);
+                return root;
+            }
             return root;
         }
         Bucket current = root;
@@ -68,7 +73,16 @@ public class Bucket {
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
             if (current != null && current.key.equals(key))
+            {
+                // Micah: not sure what to return ehre but added check for isMarked so we can set it to true
+                if (root.isMarked.get())
+                {
+                    root.isMarked.set(false);
+                    return root;
+                }
+
                 return root;
+            }
         }
         Bucket grandParent = parent(root, parent);
         if (grandParent != null)
@@ -115,8 +129,11 @@ public class Bucket {
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
             if (current != null) {
+                // Micah: added a check for isMarked since it would normally keep looping otherwise
                 if (current.key.equals(key) && !current.isMarked.get())
                     return current;
+                else if (current.key.equals(key) && current.isMarked.get())
+                    return null;
             }
         }
         return null;
@@ -183,12 +200,12 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    // Logical deletion
-                    if ((!isLeaf(current)) && (!hasOnlyLeftChild(current)) && (!hasOnlyRightChild(current))){
+                    // The following else block is used for logical deletion.
+                    // For physical deletion replace the else block with lines 209 - 217.
+                    else {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    // Not logical deletion; swapping out to be deleted node and physically deleting
                     // newDelNode = minVal(current.right);
                     // savKey = newDelNode.key;
                     // savVal = newDelNode.value;
