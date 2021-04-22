@@ -11,6 +11,7 @@ public class Threads implements Runnable {
 
     @Override
     public void run() {
+            numCtr.set(0);
             int index = 1;
             int num = numCtr.get();
             // int num = rndm.nextInt(100);
@@ -26,11 +27,12 @@ public class Threads implements Runnable {
             case 1:
                 // If a value is currently present then try to delete
             if (this.hashtable.search(String.valueOf(num)) >= 0) {
+                System.out.println("Found " + num);
                 if(this.hashtable.delete(String.valueOf(num)))
 //                     // Successful means current thread could delete the value
                     System.out.println(Thread.currentThread().getId() + ": Deleting " + num + " ........ Successful");
                 else
-//                     // Failed means current thread could not delete the value; implies that another thread may have deleted it
+//                     // Failed means current thread could not delete the value
                     System.out.println(Thread.currentThread().getId() + ": Deleting " + num + " ........ Failed");
             }
             else

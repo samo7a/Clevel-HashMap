@@ -2,7 +2,7 @@ public class Main {
     // the main method is just for testing
     public static void main(String[] args) {
 
-                int numWorkers = 100;
+                int numWorkers = 1;
                 Threads hashtable = new Threads();
                 Thread[] workerThreads = new Thread[numWorkers];
         
