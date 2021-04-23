@@ -148,9 +148,9 @@ public class Bucket {
      */
     public static Bucket deleteTree(Bucket root, String key) {
         // For logical deletion the following variables are not required: savKey, savVal, newDelNode.
-        // String savKey;
-        // int savVal;
-        // Bucket newDelNode;
+        String savKey;
+        int savVal;
+        Bucket newDelNode;
 
         if (root == null)
             return root;
@@ -201,20 +201,20 @@ public class Bucket {
                         return root;
                     }
                     // The following else block is used for logical deletion.
-                    // For physical deletion replace the else block with lines 209 - 217.
-                    else {
-                        root.size.getAndDecrement();
-                        return root;
-                    }
-                    // newDelNode = minVal(current.right);
-                    // savKey = newDelNode.key;
-                    // savVal = newDelNode.value;
-                    // current.isMarked.set(false);
-                    // deleteTree(root, savKey);
-                    // current.key = savKey;
-                    // current.value = savVal;
-                    // root.size.getAndDecrement();
-                    // return root;
+                    // This approach did not work in practice, wherein some nodes could not be marked for deletion.
+                    // else {
+                    //     root.size.getAndDecrement();
+                    //     return root;
+                    // }
+                    newDelNode = minVal(current.right);
+                    savKey = newDelNode.key;
+                    savVal = newDelNode.value;
+                    current.isMarked.set(false);
+                    deleteTree(root, savKey);
+                    current.key = savKey;
+                    current.value = savVal;
+                    root.size.getAndDecrement();
+                    return root;
                 }
                 return root;
             } finally {

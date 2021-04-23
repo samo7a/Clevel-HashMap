@@ -1,9 +1,19 @@
+/**
+ * @author Ahmed Elshetany
+ * @author Ankita Tripathi
+ * @author Jacob Bostwick
+ * @author Micah Renfrow
+ * @author Quynh Nguyen
+ * @version 1.0
+ */
+
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Threads implements Runnable {
 
     ClevelHashTable hashtable;
-    AtomicInteger numCtr = new AtomicInteger(0);
+    AtomicInteger noops = new AtomicInteger(1000000);
 
     public Threads() {
         hashtable = new ClevelHashTable();
@@ -11,12 +21,13 @@ public class Threads implements Runnable {
 
     @Override
     public void run() {
-            numCtr.set(0);
-            int index = 1;
-            int num = numCtr.get();
-            // int num = rndm.nextInt(100);
-            while (numCtr.get() < 100){
-                num = numCtr.getAndIncrement();
+        while (noops.getAndDecrement() > 0) {
+            Random rndm = new Random();
+            // int index = rndm.nextInt(3);
+            // int index = 0; // to test insertion
+            // int index = 2; // to test search
+            int index = 1; // to test deletion
+            int num = rndm.nextInt(1000000);
             switch (index) {
             case 0:
                 if (this.hashtable.insert(String.valueOf(num), num))
@@ -25,20 +36,11 @@ public class Threads implements Runnable {
                     System.out.println("Inserting " + num + " ........ Failed");
                 break;
             case 1:
-                // If a value is currently present then try to delete
-            if (this.hashtable.search(String.valueOf(num)) >= 0) {
-                System.out.println("Found " + num);
-                if(this.hashtable.delete(String.valueOf(num)))
-//                     // Successful means current thread could delete the value
-                    System.out.println(Thread.currentThread().getId() + ": Deleting " + num + " ........ Successful");
+                if (this.hashtable.delete(String.valueOf(num)))
+                    System.out.println("deleting " + num + " ........ Done");
                 else
-//                     // Failed means current thread could not delete the value
-                    System.out.println(Thread.currentThread().getId() + ": Deleting " + num + " ........ Failed");
-            }
-            else
-                System.out.println(Thread.currentThread().getId()+ ": " + num + " could not be found for deletion");
-
-            break;
+                    System.out.println("deleting " + num + " ........ Failed");
+                break;
 
             default:
                 if (this.hashtable.search(String.valueOf(num)) > 0)
