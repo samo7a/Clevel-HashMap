@@ -51,19 +51,21 @@ public class Bucket {
      */
     public static Bucket insertTree(String key, int value, Bucket root) {
         Bucket temp = new Bucket(key, value);
+
+        // Base cases
         if (root == null) {
             temp.size.getAndIncrement();
             return temp;
         }
         if (root.key.equals(key)) {
-            // Micah: not sure what to return here but added check for isMarked so we can set it to true
             if (root.isMarked.get())
             {
                 root.isMarked.set(false);
-                return root;
             }
             return root;
         }
+        
+        // Find the position
         Bucket current = root;
         Bucket parent = parent(root, current);
         while (current != null) {
@@ -74,16 +76,16 @@ public class Bucket {
                 current = current.right;
             if (current != null && current.key.equals(key))
             {
-                // Micah: not sure what to return ehre but added check for isMarked so we can set it to true
                 if (root.isMarked.get())
                 {
                     root.isMarked.set(false);
-                    return root;
                 }
 
                 return root;
             }
         }
+
+        // Locking, validation, and insertion
         Bucket grandParent = parent(root, parent);
         if (grandParent != null)
             grandParent.lock();
@@ -118,10 +120,13 @@ public class Bucket {
      * @return Null if not found or the bucket with the given key
      */
     public static Bucket searchTree(Bucket root, String key) {
+        // Base cases
         if (root == null)
             return null;
         if (root.key.equals(key))
             return root;
+
+        // Searching and finding the node
         Bucket current = root;
         while (current != null) {
             if (key.compareTo(current.key) < 0)
@@ -129,7 +134,6 @@ public class Bucket {
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
             if (current != null) {
-                // Micah: added a check for isMarked since it would normally keep looping otherwise
                 if (current.key.equals(key) && !current.isMarked.get())
                     return current;
                 else if (current.key.equals(key) && current.isMarked.get())
@@ -147,13 +151,11 @@ public class Bucket {
      * @return The root of the tree from which the key-value pair is deleted
      */
     public static Bucket deleteTree(Bucket root, String key) {
-        // For logical deletion the following variables are not required: savKey, savVal, newDelNode.
-        String savKey;
-        int savVal;
-        Bucket newDelNode;
-
+        // Base case
         if (root == null)
             return root;
+        
+        // Finds the wanted node with the search function
         Bucket current = searchTree(root, key);
         if (current == null)
             return root;
@@ -161,6 +163,7 @@ public class Bucket {
         if (parent != null)
             parent.lock();
 
+        // Deletion
         try {
             current.lock();
             try {
@@ -170,6 +173,7 @@ public class Bucket {
                 }
                 if (current.key.equals(key)) {
                     current.isMarked.set(true);
+                    // Deletion for a node with no children
                     if (isLeaf(current)) {
                         if (parent == null)
                             return null;
@@ -180,6 +184,7 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
+                    // Deletion for a node with only a left child
                     if (hasOnlyLeftChild(current)) {
                         if (parent == null)
                             return current.left;
@@ -190,6 +195,7 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
+                    //Deletion for a node with only a right child
                     if (hasOnlyRightChild(current)) {
                         if (parent == null)
                             return current.right;
@@ -200,21 +206,11 @@ public class Bucket {
                         root.size.getAndDecrement();
                         return root;
                     }
-                    // The following else block is used for logical deletion.
-                    // This approach did not work in practice, wherein some nodes could not be marked for deletion.
-                    // else {
-                    //     root.size.getAndDecrement();
-                    //     return root;
-                    // }
-                    newDelNode = minVal(current.right);
-                    savKey = newDelNode.key;
-                    savVal = newDelNode.value;
-                    current.isMarked.set(false);
-                    deleteTree(root, savKey);
-                    current.key = savKey;
-                    current.value = savVal;
-                    root.size.getAndDecrement();
-                    return root;
+                    // Deletion for a node with 2 children
+                    else {
+                        root.size.getAndDecrement();
+                        return root;
+                    }
                 }
                 return root;
             } finally {
