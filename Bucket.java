@@ -56,7 +56,7 @@ public class Bucket {
             return temp;
         }
         if (root.key.equals(key)) {
-            // Micah: not sure what to return here but added check for isMarked so we can set it to true
+            // Added check for isMarked so we can set it to true
             if (root.isMarked.get())
             {
                 root.isMarked.set(false);
@@ -74,7 +74,7 @@ public class Bucket {
                 current = current.right;
             if (current != null && current.key.equals(key))
             {
-                // Micah: not sure what to return ehre but added check for isMarked so we can set it to true
+                // Added check for isMarked so we can set it to true
                 if (root.isMarked.get())
                 {
                     root.isMarked.set(false);
@@ -129,7 +129,7 @@ public class Bucket {
             else if (key.compareTo(current.key) > 0)
                 current = current.right;
             if (current != null) {
-                // Micah: added a check for isMarked since it would normally keep looping otherwise
+                // Added a check for isMarked since it would normally keep looping otherwise
                 if (current.key.equals(key) && !current.isMarked.get())
                     return current;
                 else if (current.key.equals(key) && current.isMarked.get())
@@ -148,9 +148,9 @@ public class Bucket {
      */
     public static Bucket deleteTree(Bucket root, String key) {
         // For logical deletion the following variables are not required: savKey, savVal, newDelNode.
-        String savKey;
-        int savVal;
-        Bucket newDelNode;
+        // String savKey;
+        // int savVal;
+        // Bucket newDelNode;
 
         if (root == null)
             return root;
@@ -201,20 +201,20 @@ public class Bucket {
                         return root;
                     }
                     // The following else block is used for logical deletion.
-                    // This approach did not work in practice, wherein some nodes could not be marked for deletion.
-                    // else {
-                    //     root.size.getAndDecrement();
-                    //     return root;
-                    // }
-                    newDelNode = minVal(current.right);
-                    savKey = newDelNode.key;
-                    savVal = newDelNode.value;
-                    current.isMarked.set(false);
-                    deleteTree(root, savKey);
-                    current.key = savKey;
-                    current.value = savVal;
-                    root.size.getAndDecrement();
-                    return root;
+                    else {
+                        root.size.getAndDecrement();
+                        return root;
+                    }
+                    // The following lines of code (209-217) are used for physical deletion.
+                    // newDelNode = minVal(current.right);
+                    // savKey = newDelNode.key;
+                    // savVal = newDelNode.value;
+                    // current.isMarked.set(false);
+                    // deleteTree(root, savKey);
+                    // current.key = savKey;
+                    // current.value = savVal;
+                    // root.size.getAndDecrement();
+                    // return root;
                 }
                 return root;
             } finally {
@@ -246,7 +246,7 @@ public class Bucket {
             return null;
     }
 
-    // Helper function to find the minimum value in the tree
+    // Helper function to find the minimum value in the tree; only needed for physical deletion.
     private static Bucket minVal(Bucket root) {
         if (root.left == null)
             return root;

@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Threads implements Runnable {
 
     ClevelHashTable hashtable;
-    AtomicInteger noops = new AtomicInteger(1000000);
+    AtomicInteger numOps = new AtomicInteger(1000000);
 
     public Threads() {
         hashtable = new ClevelHashTable();
@@ -21,12 +21,13 @@ public class Threads implements Runnable {
 
     @Override
     public void run() {
-        while (noops.getAndDecrement() > 0) {
+        // Perform N = numOps random operations using random numbers between 0 - 1000000
+        while (numOps.getAndDecrement() > 0) {
             Random rndm = new Random();
-            // int index = rndm.nextInt(3);
-            // int index = 0; // to test insertion
-            // int index = 2; // to test search
-            int index = 1; // to test deletion
+            int index = rndm.nextInt(3);
+            // int index = 0; // For test 1 in Main.java: to test insertion
+            // int index = 2; // For test 2 in Main.java: to test search
+            // int index = 1; // For test 3 in Main.java: to test deletion
             int num = rndm.nextInt(1000000);
             switch (index) {
             case 0:
