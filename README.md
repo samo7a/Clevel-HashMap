@@ -1,6 +1,6 @@
 # Clevel-HashMap
 
-This is an Instagram clone with a custom Parse backend that allows a user to post photos and view a global photos feed.
+A concurrent HashMap Data Structure.
 
 This project was part of the Concept of Parallel and Distributed Processing Class (COP 4520) @ UCF
 
